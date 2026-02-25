@@ -1,0 +1,7 @@
+{
+  "name": "academy-skills",
+  "version": "0.1.0",
+  "description": "Companion skills for Vercel Academy courses",
+  "license": "MIT",
+  "skills": ["./skills"]
+}
