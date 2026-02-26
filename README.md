@@ -6,10 +6,10 @@ Companion skills for [Vercel Academy](https://vercel.com/academy) courses. Insta
 
 | Skill | Description | Install |
 |---|---|---|
-| `academy` | Core learning companion — discover courses, guided learning, progress tracking | `npx skills add vercel-labs/academy-skills --skill=academy` |
-| `slack-agents` | Build and deploy a Slack agent in one session | `npx skills add vercel-labs/academy-skills --skill=slack-agents` |
-| `filesystem-agents` | Build filesystem agents with AI SDK and Vercel Sandbox | `npx skills add vercel-labs/academy-skills --skill=filesystem-agents` |
-| `subscription-store` | Build a subscription storefront with Next.js, Supabase, and Stripe | `npx skills add vercel-labs/academy-skills --skill=subscription-store` |
+| `academy` | Core learning companion — discover courses, guided learning, progress tracking | `npx skills add vercel-labs/academy-skills --skill=academy -g -y` |
+| `slack-agents` | Build and deploy a Slack agent in one session | `npx skills add vercel-labs/academy-skills --skill=slack-agents -y` |
+| `filesystem-agents` | Build filesystem agents with AI SDK and Vercel Sandbox | `npx skills add vercel-labs/academy-skills --skill=filesystem-agents -y` |
+| `subscription-store` | Build a subscription storefront with Next.js, Supabase, and Stripe | `npx skills add vercel-labs/academy-skills --skill=subscription-store -y` |
 
 ## How it works
 
@@ -18,9 +18,11 @@ Companion skills for [Vercel Academy](https://vercel.com/academy) courses. Insta
 **Course skills** — each course gets a companion skill with a project wizard, progress detection, and lesson-by-lesson guidance. The agent drives the session: teaches, prompts, checks your code, evaluates your work.
 
 ```
-npx skills add vercel-labs/academy-skills --skill=slack-agents
-/slack-agents learn    # start guided learning
-/slack-agents new      # scaffold a new project
+# Core skill — install globally so it's available in any project
+npx skills add vercel-labs/academy-skills --skill=academy -g -y
+
+# Course skills — install per-project when you start a course
+npx skills add vercel-labs/academy-skills --skill=slack-agents -y
 ```
 
 ## Architecture
