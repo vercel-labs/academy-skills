@@ -4,25 +4,28 @@ Companion skills for [Vercel Academy](https://vercel.com/academy) courses. Insta
 
 ## Skills
 
-| Skill | Description | Install |
-|---|---|---|
-| `academy` | Core learning companion — discover courses, guided learning, progress tracking | `npx skills add vercel-labs/academy-skills --skill=academy -g -y` |
-| `slack-agents` | Build and deploy a Slack agent in one session | `npx skills add vercel-labs/academy-skills --skill=slack-agents -y` |
-| `filesystem-agents` | Build filesystem agents with AI SDK and Vercel Sandbox | `npx skills add vercel-labs/academy-skills --skill=filesystem-agents -y` |
-| `subscription-store` | Build a subscription storefront with Next.js, Supabase, and Stripe | `npx skills add vercel-labs/academy-skills --skill=subscription-store -y` |
+### Core skill (global)
 
-## How it works
+Discover courses, guided learning, progress tracking. Install globally so it's available in any project:
 
-**Core skill** (`academy`) — fetches from Academy's agent endpoints (`llms.txt`, `.md` routes) to discover courses and guide learning. Thin layer: fetch content, adapt to your project, track progress.
-
-**Course skills** — each course gets a companion skill with a project wizard, progress detection, and lesson-by-lesson guidance. The agent drives the session: teaches, prompts, checks your code, evaluates your work.
-
-```
-# Core skill — install globally so it's available in any project
+```sh
 npx skills add vercel-labs/academy-skills --skill=academy -g -y
+```
 
-# Course skills — install per-project when you start a course
+### Course skills (per-project)
+
+Each course has a companion skill with a project wizard, progress detection, and lesson-by-lesson guidance. Install in your project directory when you start a course:
+
+```sh
+npx skills add vercel-labs/academy-skills --skill=filesystem-agents -y
+```
+
+```sh
 npx skills add vercel-labs/academy-skills --skill=slack-agents -y
+```
+
+```sh
+npx skills add vercel-labs/academy-skills --skill=subscription-store -y
 ```
 
 ## Architecture
