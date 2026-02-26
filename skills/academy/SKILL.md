@@ -1,7 +1,11 @@
 ---
 name: Vercel Academy
 slug: academy
+description: >-
+  Discover courses, guided learning, progress tracking. Use when the user
+  mentions "academy", "courses", "learn", or asks about Vercel Academy content.
 version: 1
+user-invocable: true
 commands:
   - /academy
   - /academy learn <course>

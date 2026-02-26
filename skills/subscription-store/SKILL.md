@@ -1,6 +1,11 @@
 ---
-name: Launch a Subscription Store
+name: subscription-store
 slug: subscription-store
+description: >-
+  Companion skill for the Launch a Subscription Store course on Vercel Academy.
+  Use when the user mentions "subscription store", "stripe", "supabase auth",
+  or asks about building a subscription storefront with Next.js, Supabase, and Stripe.
+user-invocable: true
 version: 1
 course_url: https://vercel.com/academy/subscription-store
 commands:
@@ -62,20 +67,20 @@ https://vercel.com/academy/subscription-store/<lesson>.md   → lesson content
 
 ## Progress detection
 
-| Signal | Lesson area |
-|---|---|
-| Starter deployed, `package.json` exists | Setup (1) |
-| `.env.local` with `NEXT_PUBLIC_SUPABASE_URL` | Supabase config (2-3) |
-| `app/(auth)/sign-up/page.tsx` exists | Auth pages (4) |
-| `proxy.ts` with session handling | Route protection (5) |
-| `.env.local` with `STRIPE_SECRET_KEY` | Stripe config (6) |
-| Pricing page fetching from Supabase | Pricing (7) |
-| Checkout Server Action implemented | Checkout flow (8) |
-| Subscription management page rendering | Management (9-10) |
-| Access control checks in Server Components | Access control (11-14) |
-| Error boundaries and loading states | Polish (15) |
-| Header with auth-aware navigation | Navigation (16) |
-| Deployed to production | Ship (17) |
+| Signal                                       | Lesson area            |
+| -------------------------------------------- | ---------------------- |
+| Starter deployed, `package.json` exists      | Setup (1)              |
+| `.env.local` with `NEXT_PUBLIC_SUPABASE_URL` | Supabase config (2-3)  |
+| `app/(auth)/sign-up/page.tsx` exists         | Auth pages (4)         |
+| `proxy.ts` with session handling             | Route protection (5)   |
+| `.env.local` with `STRIPE_SECRET_KEY`        | Stripe config (6)      |
+| Pricing page fetching from Supabase          | Pricing (7)            |
+| Checkout Server Action implemented           | Checkout flow (8)      |
+| Subscription management page rendering       | Management (9-10)      |
+| Access control checks in Server Components   | Access control (11-14) |
+| Error boundaries and loading states          | Polish (15)            |
+| Header with auth-aware navigation            | Navigation (16)        |
+| Deployed to production                       | Ship (17)              |
 
 ## Teaching guidelines
 

@@ -1,6 +1,11 @@
 ---
-name: Building Slack Agents
+name: slack-agents
 slug: slack-agents
+description: >-
+  Companion skill for the Building Slack Agents course on Vercel Academy.
+  Use when the user mentions "slack agents", "slack bot", or asks about
+  Workflow DevKit, human-in-the-loop, or deploying Slack apps on Vercel.
+user-invocable: true
 version: 1
 course_url: https://vercel.com/academy/slack-agents
 commands:
@@ -64,13 +69,13 @@ Custom tools connect to your systems: customer records, support tickets, databas
 
 ## Progress detection
 
-| Signal | Stage |
-|---|---|
-| Project scaffolded from template | 1: Setup |
-| `manifest.json` with correct scopes | 2: Slack app |
-| `.env.local` with `SLACK_SIGNING_SECRET` + `SLACK_BOT_TOKEN` | 3: Config |
-| Dev server running, ngrok tunnel active | 4: Testing |
-| Deployed to Vercel with env vars | 5: Production |
+| Signal                                                       | Stage         |
+| ------------------------------------------------------------ | ------------- |
+| Project scaffolded from template                             | 1: Setup      |
+| `manifest.json` with correct scopes                          | 2: Slack app  |
+| `.env.local` with `SLACK_SIGNING_SECRET` + `SLACK_BOT_TOKEN` | 3: Config     |
+| Dev server running, ngrok tunnel active                      | 4: Testing    |
+| Deployed to Vercel with env vars                             | 5: Production |
 
 ## Teaching guidelines
 
