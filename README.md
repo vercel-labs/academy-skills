@@ -16,13 +16,19 @@ npx skills add vercel-labs/academy-skills --skill=academy -g -y
 
 Each course has a companion skill with a project wizard, progress detection, and lesson-by-lesson guidance. Install in your project directory when you start a course:
 
+[Building Filesystem Agents](https://vercel.com/academy/filesystem-agents) — Build agents that navigate filesystems with bash to answer questions about structured data.
+
 ```sh
 npx skills add vercel-labs/academy-skills --skill=filesystem-agents -y
 ```
 
+[Building Slack Agents](https://vercel.com/academy/slack-agents) — Build and deploy a Slack agent in one session.
+
 ```sh
 npx skills add vercel-labs/academy-skills --skill=slack-agents -y
 ```
+
+[Subscription Store](https://vercel.com/academy/subscription-store) — Build a subscription storefront with Next.js, Supabase, and Stripe.
 
 ```sh
 npx skills add vercel-labs/academy-skills --skill=subscription-store -y
