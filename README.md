@@ -28,6 +28,12 @@ npx skills add vercel-labs/academy-skills --skill=filesystem-agents -y
 npx skills add vercel-labs/academy-skills --skill=slack-agents -y
 ```
 
+[Python on Vercel](https://vercel.com/academy/python-on-vercel) — Ship a FastAPI backend and Next.js frontend as one Vercel project.
+
+```sh
+npx skills add vercel-labs/academy-skills --skill=python-on-vercel -y
+```
+
 [Subscription Store](https://vercel.com/academy/subscription-store) — Build a subscription storefront with Next.js, Supabase, and Stripe.
 
 ```sh
@@ -47,6 +53,8 @@ skills/
     SKILL.md
     references/
   subscription-store/  → course: guided build
+    SKILL.md
+  python-on-vercel/    → course: FastAPI + Next.js on Vercel
     SKILL.md
 ```
 
