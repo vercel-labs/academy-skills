@@ -34,6 +34,12 @@ npx skills add vercel-labs/academy-skills --skill=slack-agents -y
 npx skills add vercel-labs/academy-skills --skill=subscription-store -y
 ```
 
+[Building Agents with Eve](https://vercel.com/academy/building-agents-with-eve) — Build a production bike-shop dispatcher with Eve, from first tool to a deployed app behind Slack, a web dashboard, real auth, and human approval.
+
+```sh
+npx skills add vercel-labs/academy-skills --skill=building-agents-with-eve -y
+```
+
 ## Architecture
 
 ```
@@ -48,6 +54,9 @@ skills/
     references/
   subscription-store/  → course: guided build
     SKILL.md
+  building-agents-with-eve/  → course: teaching + progress detection + eval
+    SKILL.md
+    references/
 ```
 
 Course skills fetch lesson content from Academy's `.md` endpoints at runtime:
