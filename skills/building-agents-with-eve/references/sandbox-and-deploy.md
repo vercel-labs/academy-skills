@@ -24,7 +24,7 @@ import { vercel } from "eve/sandbox/vercel";
 export default defineSandbox({ backend: vercel() });
 ```
 
-> Version note: at `0.10.0` the Vercel backend is `vercel()` from `eve/sandbox/vercel`. Older names (`vercelSandboxBackend()`, `vercelBackend()`) are gone. The course uses `defaultBackend()`, which is the recommended path — only reach for the explicit pin if a student needs it.
+> Version note: in current `eve` the Vercel backend is `vercel()` from `eve/sandbox/vercel`. Older names (`vercelSandboxBackend()`, `vercelBackend()`) are gone. The course uses `defaultBackend()`, which is the recommended path — only reach for the explicit pin if a student needs it. Backend factory names can shift between releases, so check the student's installed `node_modules/eve/docs/sandbox.mdx` for the exact set in their version.
 
 ## Why local timing is loose
 
@@ -35,8 +35,8 @@ During `eve dev`, sandbox work and workflows run locally, so timing is approxima
 The deploy flow in 5.2:
 
 ```bash
-eve build          # produce the deployable build
-vercel deploy      # ship it to Vercel
+npx eve build      # produce the deployable build
+vercel deploy      # ship it (or `npx eve deploy` for production)
 ```
 
 Before deploying, 5.1 must be done: auth fails closed, secrets live in environment variables (not source), and the Gateway model string resolves via OIDC (`vercelOidc()`) rather than a checked-in key. Only the model layer needs a credential (AI Gateway) — there's no per-tool API key sprawl here.
@@ -46,7 +46,7 @@ Before deploying, 5.1 must be done: auth fails closed, secrets live in environme
 Once deployed, point the dev TUI at the live URL to drive the production agent:
 
 ```bash
-eve dev <deployment-url>
+npx eve dev <deployment-url>
 ```
 
 Then watch the **Agent Runs** tab in the Vercel dashboard for observability — each run, its tool calls, approvals, and outcomes. Have the student run the same conversation they ran locally (a quote, a save, an over-$150 booking) and confirm the approval gate parks and resumes in production exactly as it did in dev — now durably, across the real runtime.

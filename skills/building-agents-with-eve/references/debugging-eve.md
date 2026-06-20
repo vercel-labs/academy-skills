@@ -7,8 +7,8 @@ A lesson-by-lesson troubleshooting guide. Each entry is a symptom → cause → 
 **`npx eve@latest init` fails or the TUI won't start.**
 Cause: wrong Node version. Fix: Eve needs **Node.js 24**. Check `node -v`.
 
-**The agent answers like a generic chatbot, not a service writer (1.1).**
-Cause: `instructions.md` is empty or not describing the persona. Fix: `agent/instructions.md` is read on every turn — put the Spoke & Mirror service-writer identity there. It's not in `agent.ts`.
+**The agent answers like a generic chatbot, not a front-desk advisor (1.1).**
+Cause: `instructions.md` is empty or not describing the persona. Fix: `agent/instructions.md` is read on every turn — put the Spoke & Mirror front-desk advisor identity there. It's not in `agent.ts`.
 
 **Model string errors (1.1).**
 Cause: typo or wrong model id. Fix: it's `anthropic/claude-opus-4.8` in `defineAgent({ model: ... })`.
@@ -58,8 +58,8 @@ Cause: looking in the wrong place. Fix: the turn parks at `session.waiting`. In 
 **Generated dashboard paths don't match the lesson (4.1).**
 Cause: paths drift between Eve versions. Fix: trust the actual generated tree — `git status` — over any printed path. The lesson says so explicitly.
 
-**Slack does nothing / events never arrive (4.2).**
-Cause: Connect not enabled, or attached to the wrong path. Fix: `export FF_CONNECT_ENABLED=1`, then `create` → `detach <uid>` → `attach --trigger-path /eve/v1/slack`. Eve serves `/eve/v1/slack`, not Connect's default path.
+**Bot is in Slack but never replies (4.2).**
+Cause: most often triggers aren't enabled on the *connector*. `--triggers` is needed twice: on `create` (enables forwarding for the connector) AND on `attach` (registers this project as the destination). `vercel connect attach` even warns `Triggers are not enabled on this connector` when `create` was run without it — the fix is to recreate: `vercel connect remove slack/spoke-and-mirror --disconnect-all --yes`, then `create … --name spoke-and-mirror --triggers` and re-`attach … --triggers --trigger-path /eve/v1/slack`. Also: the path must be `/eve/v1/slack` (Connect's default is `/slack`); re-running `create` leaves duplicate Slack apps (clean them in Slack's Manage Apps); DMs don't fire `onAppMention` — `@`-mention in a channel the bot is invited to; and `vercel connect` needs a current CLI (no `FF_CONNECT_ENABLED` flag).
 
 **Slack handler signature errors (4.2).**
 Cause: old API shape. Fix: handlers take `(eventData, channel, ctx)` and post via `channel.thread.post(...)` — not `(event, ctx)` / `ctx.thread.post`.

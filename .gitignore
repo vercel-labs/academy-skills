@@ -1,2 +1,8 @@
 node_modules/
 .DS_Store
+
+# Externally installed skills (managed via skills-lock.json, kept local)
+.agents/
+.claude/
+skills-lock.json
+skills/new-course
