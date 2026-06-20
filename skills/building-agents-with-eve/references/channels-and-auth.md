@@ -110,7 +110,9 @@ import { connectSlackCredentials } from "@vercel/connect/eve";
 import { defaultSlackAuth, slackChannel } from "eve/channels/slack";
 
 export default slackChannel({
-  credentials: connectSlackCredentials("slack/spoke-and-mirror"),
+  credentials: connectSlackCredentials(
+    process.env.SLACK_CONNECTOR ?? "slack/spoke-and-mirror",
+  ),
   onAppMention: (ctx, message) =>
     message.author ? { auth: defaultSlackAuth(message, ctx) } : null,
   events: {
@@ -122,14 +124,15 @@ export default slackChannel({
 });
 ```
 
-Setup students run once (order matters — Eve serves `/eve/v1/slack`, not Connect's default path):
+Setup students run once (no feature flag — `vercel connect` ships with a current CLI). `--triggers` is needed on **both** commands: `create` enables forwarding on the connector, `attach` registers this project as the destination. `--trigger-path /eve/v1/slack` is required because Connect's default is `/slack`:
 
 ```bash
-export FF_CONNECT_ENABLED=1
-vercel connect create slack --triggers
-vercel connect detach <uid> --yes
-vercel connect attach <uid> --triggers --trigger-path /eve/v1/slack --yes
+vercel link
+vercel connect create slack --name spoke-and-mirror --triggers
+vercel connect attach slack/spoke-and-mirror --triggers --trigger-path /eve/v1/slack
 ```
+
+No `detach` step — `create` doesn't auto-attach a project. Re-running `create` installs a new Slack app each time and `remove` doesn't uninstall it, so clean stale apps in Slack's Manage Apps if you iterate. Deploy with `npx eve deploy` (Slack needs a public URL).
 
 Two API shapes to flag, since older examples differ:
 

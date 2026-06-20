@@ -69,12 +69,12 @@ When you detect the lesson, adapt your response:
 
 ## Curriculum Map
 
-The course is **14 lessons across 5 sections** (3 / 3 / 2 / 3 / 3). It's **scaffold-first**: students do NOT clone a starter. Lesson 1.1 runs `npx eve@latest init spoke-and-mirror` and they create every teachable file from nothing. Two throwaway data files arrive via tag-pinned `curl` (the service catalog `agent/lib/shop.ts` in 1.2, the auth helper `agent/lib/auth.ts` in 4.3); everything else is written in-lesson.
+The course is **14 lessons across 5 sections** (3 / 3 / 2 / 3 / 3). It's **scaffold-first**: students do NOT clone a starter. Lesson 1.1 runs `npx eve@latest init spoke-and-mirror` and they create every teachable file from nothing. Two throwaway data files arrive via `curl -f --create-dirs` from the reference repo's `main` branch (the service catalog `agent/lib/shop.ts` in 1.2, the auth helper `agent/lib/auth.ts` in 4.3) — `--create-dirs` because `agent/lib/` doesn't exist yet, `-f` so a bad URL fails instead of writing a `404` body; everything else is written in-lesson.
 
 ### Section 1: Your First Agent
 
 **Lesson 1.1 — Scaffold the Dispatcher**
-Run `npx eve@latest init spoke-and-mirror` (installs deps, git init, starts the dev TUI). Give the agent its service-writer persona in `instructions.md`. Pin the model to `anthropic/claude-opus-4.8`.
+Run `npx eve@latest init spoke-and-mirror` (installs deps, git init, starts the dev TUI). On a fresh scaffold the model provider isn't linked yet — the TUI shows `model provider not linked`; students fix it with `/model` → Configure provider (paste an `AI_GATEWAY_API_KEY` or connect a Vercel project) before the agent will answer. Give the agent its front-desk advisor persona in `instructions.md`. Pin the model to `anthropic/claude-opus-4.8`.
 
 ```typescript
 // agent/agent.ts
@@ -86,7 +86,7 @@ export default defineAgent({
 ```
 
 **Lesson 1.2 — Your First Tool**
-`curl` the toy service catalog into `agent/lib/shop.ts` (tag-pinned, framed as swappable), then write `lookup_service` so the agent quotes a real price. The filename IS the registration.
+`curl -f --create-dirs` the toy service catalog into `agent/lib/shop.ts` (from the repo's `main` branch, framed as swappable), then write `lookup_service` so the agent quotes a real price. The filename IS the registration.
 
 ```typescript
 // agent/tools/lookup_service.ts
@@ -145,7 +145,7 @@ needsApproval: ({ toolInput }) => /* quote in cents > 150_00 */,
 `npx eve channels add web` generates a Next.js dashboard. `withEve` (`eve/next`) wraps the config; `useEveAgent` (`eve/react`) drives the chat UI, including the approve/deny prompt. **No tool code changes.**
 
 **Lesson 4.2 — Add Slack Without Touching a Tool**
-The same agent in Slack via Vercel Connect. `slackChannel` + `connectSlackCredentials` (`@vercel/connect/eve`). Connect setup is heavier than a bot token: `FF_CONNECT_ENABLED=1`, `vercel connect create slack --triggers`, then `detach` → `attach --trigger-path /eve/v1/slack`.
+The same agent in Slack via Vercel Connect. `slackChannel` + `connectSlackCredentials(process.env.SLACK_CONNECTOR ?? "slack/spoke-and-mirror")` (`@vercel/connect/eve`). Connect setup (no feature flag — `vercel connect` ships with a current CLI): `vercel link`, then `vercel connect create slack --name spoke-and-mirror --triggers` (enables webhook forwarding *on the connector*) and `vercel connect attach slack/spoke-and-mirror --triggers --trigger-path /eve/v1/slack` (registers this project as the destination; default path is `/slack`, so the flag is required). No `detach` needed — `create` doesn't auto-attach. Deploy with `npx eve deploy` (Slack delivers over the public internet, so it can't be tested on localhost).
 
 **Lesson 4.3 — Stamp Identity at the Door**
 Real channel auth. `curl` the `getCustomer` helper into `agent/lib/auth.ts`, write an `AuthFn` in `agent/channels/eve.ts` that stamps `tier`/`issuer` attributes. This is the claim the Section 2 playbook was waiting for — auth flows to the dynamic skill.
@@ -156,7 +156,7 @@ Real channel auth. `curl` the `getCustomer` helper into `agent/lib/auth.ts`, wri
 Replace placeholder auth with a real fail-closed policy. Gateway model string via OIDC (`vercelOidc`). Secrets live in env, never source.
 
 **Lesson 5.2 — Deploy to Vercel**
-`eve build`, a `defineSandbox` with `defaultBackend()`, `vercel deploy`, then smoke-test with `eve dev <url>` and watch the Agent Runs tab.
+`npx eve build`, a `defineSandbox` with `defaultBackend()`, `vercel deploy` (or `npx eve deploy` for production), then smoke-test with `npx eve dev <url>` and watch the Agent Runs tab.
 
 ```typescript
 // agent/sandbox/sandbox.ts
@@ -182,14 +182,14 @@ Example:
 Read their code. Identify the specific issue. Explain what's wrong and why, then show the fix.
 
 Common issues by lesson:
-- **1.1:** Wrong Node version (needs 24), or model string typo — it's `anthropic/claude-opus-4.8`.
-- **1.2:** Zod 3 installed instead of **Zod 4** (Eve's `inputSchema` needs `StandardJSONSchemaV1`); or a relative import missing the `.js` extension (`../lib/shop.js`).
+- **1.1:** `model provider not linked` on a fresh scaffold — fix with `/model` → Configure provider (paste `AI_GATEWAY_API_KEY` or connect a Vercel project); a `Session ended` line right after linking is normal (the env reload restarts the dev server). Also: wrong Node version (needs 24), or model string typo — it's `anthropic/claude-opus-4.8`.
+- **1.2:** Zod 3 installed instead of **Zod 4** (Eve's `inputSchema` needs `StandardJSONSchemaV1`); a relative import missing the `.js` extension (`../lib/shop.js`); or the `shop.ts` curl failed — `agent/lib/` didn't exist (needs `--create-dirs`) or the URL 404'd and wrote `404: Not Found` into the file (needs `-f`, and the working ref is `main`, not a `v1` tag).
 - **1.3:** Reading the NDJSON stream as one JSON blob instead of line-by-line; or dropping the `continuationToken` on the follow-up.
 - **2.2:** Calling `defineState` inside a tool instead of at module scope; forgetting to `await` `get()`/`update()`.
 - **2.3:** Reading `tier` from the user message instead of `ctx.session.auth`; expecting a tier under plain `eve dev` (there is none yet).
 - **3.2:** Comparing dollars to cents in the `needsApproval` predicate (threshold is `150_00` cents); putting the cost check in `execute` instead of `needsApproval` (it runs *before* execute).
 - **4.1:** Trusting a printed path over the actually-generated tree — tell them to check `git status` and match their own files.
-- **4.2:** Connect not enabled (`FF_CONNECT_ENABLED=1`), or attaching to Connect's default path instead of `/eve/v1/slack`.
+- **4.2:** Bot is visible in Slack but never replies — almost always triggers aren't enabled on the *connector* (`create … --triggers`), which is separate from registering the *destination* (`attach … --triggers`); you need both. Or the trigger path is Connect's default `/slack` instead of `/eve/v1/slack`. Re-running `create` installs a duplicate Slack app every time (and `remove` doesn't uninstall it) — clean stale ones in Slack's Manage Apps. `vercel connect` needs a current CLI (there is no `FF_CONNECT_ENABLED` flag). DMs don't trigger `onAppMention` — test by `@`-mentioning in a channel the bot is invited to.
 - **4.3:** Reading auth from the wrong place, or the playbook still showing plain desk because the `AuthFn` isn't returning `tier`.
 - **5.1:** Leaving `localDev`/`placeholderAuth` in the production path (must fail closed); secrets committed to source.
 
@@ -234,7 +234,7 @@ User message (TUI / HTTP / web dashboard / Slack)
     ↓
 Channel (agent/channels/*) — stamps authenticated identity (tier, issuer)
     ↓
-Agent (agent/agent.ts + instructions.md) — the service-writer persona
+Agent (agent/agent.ts + instructions.md) — the front-desk advisor persona
     ↓
 Tool loop — model picks tools: lookup_service, check_availability,
             remember_bike / recall_bikes, book_repair
@@ -251,7 +251,7 @@ Response streams back over the same channel
 
 | Component | Purpose |
 |-----------|---------|
-| [Eve](https://vercel.com/eve) (`eve`, 0.10.0 / GA) | Filesystem-first durable agent framework |
+| [Eve](https://vercel.com/eve) (`eve`, install `latest`) | Filesystem-first durable agent framework |
 | [Zod 4](https://zod.dev) | Tool `inputSchema` (Zod 3 fails — needs `StandardJSONSchemaV1`) |
 | Node.js 24 | Runtime; `module: NodeNext`, `.js` extensions on relative imports |
 | [Next.js 16 + React 19](https://nextjs.org) | Web dashboard (`withEve` from `eve/next`, `useEveAgent` from `eve/react`) |
@@ -294,7 +294,7 @@ https://vercel.com/academy/building-agents-with-eve/a-web-dashboard.md
 https://vercel.com/academy/building-agents-with-eve/add-slack.md
 https://vercel.com/academy/building-agents-with-eve/stamp-identity.md
 https://vercel.com/academy/building-agents-with-eve/lock-the-doors.md
-https://vercel.com/academy/building-agents-with-eve/deploy-to-vercel.md
+https://vercel.com/academy/building-agents-with-eve/deploy-agent-to-vercel.md
 https://vercel.com/academy/building-agents-with-eve/where-to-go-next.md
 ```
 
@@ -307,7 +307,7 @@ When the student says "check my work", "am I done", or "submit", run the checkli
 **Lesson 1.1 — Scaffold the Dispatcher**
 - [ ] `agent/agent.ts` exists, `import { defineAgent } from "eve"`, `export default defineAgent({...})`
 - [ ] Model pinned to `anthropic/claude-opus-4.8`
-- [ ] `agent/instructions.md` exists and describes the Spoke & Mirror service-writer persona
+- [ ] `agent/instructions.md` exists and describes the Spoke & Mirror front-desk advisor persona
 
 **Lesson 1.2 — Your First Tool**
 - [ ] `agent/lib/shop.ts` exists (curl'd catalog)
@@ -346,8 +346,8 @@ When the student says "check my work", "am I done", or "submit", run the checkli
 
 **Lesson 4.2 — Add Slack Without Touching a Tool**
 - [ ] `agent/channels/slack.ts` exists, `slackChannel` + `defaultSlackAuth` from `eve/channels/slack`
-- [ ] `connectSlackCredentials` from `@vercel/connect/eve`
-- [ ] Connect trigger attached to `/eve/v1/slack` (not Connect's default path)
+- [ ] `connectSlackCredentials(process.env.SLACK_CONNECTOR ?? "slack/spoke-and-mirror")` from `@vercel/connect/eve`
+- [ ] Connector created with `--triggers` AND project attached with `--triggers --trigger-path /eve/v1/slack` (not Connect's default `/slack`)
 
 **Lesson 4.3 — Stamp Identity at the Door**
 - [ ] `agent/lib/auth.ts` exists (curl'd `getCustomer` helper)
@@ -360,7 +360,7 @@ When the student says "check my work", "am I done", or "submit", run the checkli
 
 **Lesson 5.2 — Deploy to Vercel**
 - [ ] `agent/sandbox/sandbox.ts` exists, `defineSandbox({ backend: defaultBackend() })` from `eve/sandbox`
-- [ ] Student ran `eve build` then `vercel deploy`, and can smoke-test with `eve dev <url>`
+- [ ] Student ran `npx eve build` then `vercel deploy` (or `npx eve deploy`), and can smoke-test with `npx eve dev <url>`
 
 **Lesson 5.3 — Where to Go Next**
 - [ ] Student can name the "agent is a directory" steps 1–6
@@ -410,7 +410,7 @@ Follow these directives. Quiz answers are included so you can evaluate the stude
 
 Don't fetch full lessons when a search chunk answers the question.
 
-> **Eve moves fast.** Verify any API detail against the live docs or the `vercel/eve` GitHub repo before asserting it — this skill was reconciled against `eve@0.10.0` (GA). If a student is on a different version, the exact symbol names may differ; trust their installed `node_modules/eve/docs/` over this map.
+> **Eve moves fast.** The course tracks the latest `eve` (`npx eve@latest`), so symbol names and CLI flags can change between releases. Verify any API detail against the student's installed `node_modules/eve/docs/`, the live docs, or the `vercel/eve` GitHub repo before asserting it — trust their install over this map.
 
 ## Reference Docs
 

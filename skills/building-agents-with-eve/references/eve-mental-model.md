@@ -83,4 +83,4 @@ Anything that must outlive the session, be shared across users, or be queried in
 
 ## Verify against the installed version
 
-Eve moves fast (this course is reconciled against `0.10.0` GA). The source of truth is, in order: the student's installed `node_modules/eve/docs/`, the live docs, and the `vercel/eve` GitHub repo. If a symbol name in this skill doesn't match what the student has installed, trust their install.
+Eve moves fast and the course tracks the latest release (`npx eve@latest`). The source of truth is, in order: the student's installed `node_modules/eve/docs/`, the live docs, and the `vercel/eve` GitHub repo. If a symbol name in this skill doesn't match what the student has installed, trust their install.
