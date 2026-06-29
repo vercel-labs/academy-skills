@@ -4,7 +4,7 @@ Section 3 is the course's wrong-first beat. Lesson 3.1 ships `book_repair` with 
 
 ## HITL is not a separate system
 
-The key framing for students: **human approval is just a tool that pauses for a person before running.** There's no separate approval subsystem to stand up. You gate a tool with `needsApproval`, and Eve handles parking the turn, surfacing the request on the channel, and resuming.
+The key framing for students: **human approval is just a tool that pauses for a person before running.** There's no separate approval subsystem to stand up. You gate a tool with `needsApproval`, and eve handles parking the turn, surfacing the request on the channel, and resuming.
 
 ## The helpers vs. a predicate
 
@@ -54,7 +54,7 @@ export default defineTool({
 When the predicate returns `true`, the model's request to run the tool becomes an approval request instead of an execution:
 
 1. The model requests input (an approval).
-2. Eve surfaces it on the channel. The Slack adapter renders approvals as buttons; the web dashboard (`useEveAgent`) renders an approve/deny prompt.
+2. eve surfaces it on the channel. The Slack adapter renders approvals as buttons; the web dashboard (`useEveAgent`) renders an approve/deny prompt.
 3. The turn parks at **`session.waiting`**, durably, for as long as it takes — minutes or days. No compute is held open.
 4. When the human approves, the run **resumes exactly where it parked** — same history, same state, same step — and `execute` runs. On deny, the tool doesn't run and the model continues without it.
 

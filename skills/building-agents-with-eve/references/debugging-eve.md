@@ -5,7 +5,7 @@ A lesson-by-lesson troubleshooting guide. Each entry is a symptom → cause → 
 ## Section 1 — Your First Agent
 
 **`npx eve@latest init` fails or the TUI won't start.**
-Cause: wrong Node version. Fix: Eve needs **Node.js 24**. Check `node -v`.
+Cause: wrong Node version. Fix: eve needs **Node.js 24**. Check `node -v`.
 
 **The agent answers like a generic chatbot, not a front-desk advisor (1.1).**
 Cause: `instructions.md` is empty or not describing the persona. Fix: `agent/instructions.md` is read on every turn — put the Spoke & Mirror front-desk advisor identity there. It's not in `agent.ts`.
@@ -14,7 +14,7 @@ Cause: `instructions.md` is empty or not describing the persona. Fix: `agent/ins
 Cause: typo or wrong model id. Fix: it's `anthropic/claude-opus-4.8` in `defineAgent({ model: ... })`.
 
 **Schema / `StandardJSONSchemaV1` type errors when adding the first tool (1.2).**
-Cause: **Zod 3 installed instead of Zod 4.** Fix: Eve's `inputSchema` needs Zod 4. Check the installed Zod major version and upgrade.
+Cause: **Zod 3 installed instead of Zod 4.** Fix: eve's `inputSchema` needs Zod 4. Check the installed Zod major version and upgrade.
 
 **`Cannot find module '../lib/shop'` (1.2).**
 Cause: missing `.js` extension on a relative import. Fix: the project is `module: NodeNext` — import `../lib/shop.js`, even though the source is `.ts`.
@@ -56,7 +56,7 @@ Cause: looking in the wrong place. Fix: the turn parks at `session.waiting`. In 
 ## Section 4 — Meet Your Users
 
 **Generated dashboard paths don't match the lesson (4.1).**
-Cause: paths drift between Eve versions. Fix: trust the actual generated tree — `git status` — over any printed path. The lesson says so explicitly.
+Cause: paths drift between eve versions. Fix: trust the actual generated tree — `git status` — over any printed path. The lesson says so explicitly.
 
 **Bot is in Slack but never replies (4.2).**
 Cause: most often triggers aren't enabled on the *connector*. `--triggers` is needed twice: on `create` (enables forwarding for the connector) AND on `attach` (registers this project as the destination). `vercel connect attach` even warns `Triggers are not enabled on this connector` when `create` was run without it — the fix is to recreate: `vercel connect remove slack/spoke-and-mirror --disconnect-all --yes`, then `create … --name spoke-and-mirror --triggers` and re-`attach … --triggers --trigger-path /eve/v1/slack`. Also: the path must be `/eve/v1/slack` (Connect's default is `/slack`); re-running `create` leaves duplicate Slack apps (clean them in Slack's Manage Apps); DMs don't fire `onAppMention` — `@`-mention in a channel the bot is invited to; and `vercel connect` needs a current CLI (no `FF_CONNECT_ENABLED` flag).
@@ -72,12 +72,12 @@ Cause: the `AuthFn` isn't returning `tier`, or the walk falls through app auth. 
 **Works locally, behaves differently deployed.**
 Cause: local `eve dev` runs sandbox/workflows locally with loose timing. Fix: judge production behavior from the deployed build (`eve dev <url>`) and the Agent Runs tab, not from local runs.
 
-**Auth too permissive in production (5.1).**
-Cause: `localDev()` left as the effective authenticator. Fix: `localDev()` trusts the advertised hostname and must never stand alone in prod — keep app auth + `vercelOidc()`, remove the dev catch-all from the production path, fail closed.
+**Auth in production (5.1).**
+`localDev()` is fine to leave in the walk — it only matches loopback hostnames, so public traffic never hits it, and `appAuth` runs first anyway. The real check: `appAuth` is first and the scaffold's `placeholderAuth()` is gone, so an unauthenticated public request falls through every entry to a `401`. Put a normalizing proxy in front of the origin so a forged `Host` header can't spoof loopback.
 
 **Model calls fail after deploy.**
 Cause: the Gateway credential isn't resolving. Fix: in production the model string resolves via OIDC; confirm secrets are in environment variables (not source) and OIDC is configured. Only the model layer needs a credential.
 
 ## When nothing here fits
 
-Read the student's actual file, name the specific line that's wrong, and check it against the bundled docs at `node_modules/eve/docs/`. Eve moves fast — if a symbol doesn't match, trust the student's installed version over this guide.
+Read the student's actual file, name the specific line that's wrong, and check it against the bundled docs at `node_modules/eve/docs/`. eve moves fast — if a symbol doesn't match, trust the student's installed version over this guide.

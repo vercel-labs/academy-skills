@@ -4,7 +4,7 @@ Lesson 5.3 closes the course by naming what the student built and the three dire
 
 ## Recap: "an agent is a directory," steps 1–6
 
-By the end, the student has touched the six core directories that make up an Eve agent:
+By the end, the student has touched the six core directories that make up an eve agent:
 
 1. **`agent.ts` + `instructions.md`** — the model and the persona.
 2. **`tools/`** — typed actions (`lookup_service`, `check_availability`, `remember_bike`, `recall_bikes`, `book_repair`).

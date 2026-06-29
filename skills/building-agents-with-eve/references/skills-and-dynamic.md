@@ -51,11 +51,11 @@ Note the defensive `Array.isArray(tier) ? tier[0] : tier` — attribute values c
 
 ## The chicken-and-egg the course resolves on purpose
 
-In Section 2, there is **no channel auth yet**. Under plain `eve dev`, no `tier` claim is stamped, so `ctx.session.auth.current?.attributes.tier` is undefined and the playbook returns `null` — the plain desk. That's expected, not broken.
+In Section 2 there is **no real channel auth yet**. Under plain `eve dev` the TUI sends no claim, so `ctx.session.auth.current?.attributes.tier` is undefined and the playbook returns `null` — the plain desk. That's expected, not broken.
 
-The tier only starts flowing in **Section 4.3**, when `agent/channels/eve.ts` gets an `AuthFn` that stamps `tier` from the customer's record. From that point the *same* dynamic skill, untouched, starts changing the desk. This is the course's payoff for the build-vs-deploy spine: the brain was wired in Section 2, and identity wired in Section 4 lights it up.
+So that the playbook is testable now, 2.3 adds a crude demo door to `agent/channels/eve.ts`: a `demoTierAuth` `AuthFn` that stamps `tier` from an `x-shop-tier` header. Hitting the agent over HTTP with `curl -H 'x-shop-tier: pro'` lights up the pro desk; the TUI (no header) stays plain. `localDev()` must stay in the walk or the TUI locks out. This door trusts a header anyone could send — fine on a laptop, dangerous in production — so **4.3** replaces it with a real `appAuth` that stamps `tier` from the customer's server-side record. From that point the *same* dynamic skill, untouched, changes the desk for callers who proved who they are. That's the payoff for the build-vs-deploy spine: the brain was wired in Section 2, and real identity in Section 4 lights it up for production.
 
-When a student in Section 2 says "my playbook never changes," the answer is: "Correct — it can't until you stamp identity in 4.3. Want to skip ahead and test it with a faked claim, or keep building and let it come online then?"
+When a student in Section 2 says "my playbook never changes in the TUI," the answer is: "Right — the TUI sends no tier. Test it with `curl -H 'x-shop-tier: pro'` against the demo door you added in 2.3, and real auth replaces that door in 4.3."
 
 ## The sandbox workspace seed
 

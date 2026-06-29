@@ -1,4 +1,4 @@
-# Eve's Mental Model: An Agent Is a Directory
+# eve's Mental Model: An Agent Is a Directory
 
 The single idea that makes everything else in the course click: **an agent is a directory, and a file's location is its registration.** There is no central registry to keep in sync, no `register(tool)` call, no array of imports to maintain. You create `agent/tools/lookup_service.ts`, and the agent now has a `lookup_service` tool. You delete the file; the tool is gone.
 
@@ -6,7 +6,7 @@ This is the structural argument the course is built on. Hold onto it — when a 
 
 ## The project layout
 
-A scaffolded Eve project (`npx eve@latest init`) gives you a skeleton. By the end of the course, the dispatcher's `agent/` tree looks like this:
+A scaffolded eve project (`npx eve@latest init`) gives you a skeleton. By the end of the course, the dispatcher's `agent/` tree looks like this:
 
 ```
 agent/
@@ -83,4 +83,4 @@ Anything that must outlive the session, be shared across users, or be queried in
 
 ## Verify against the installed version
 
-Eve moves fast and the course tracks the latest release (`npx eve@latest`). The source of truth is, in order: the student's installed `node_modules/eve/docs/`, the live docs, and the `vercel/eve` GitHub repo. If a symbol name in this skill doesn't match what the student has installed, trust their install.
+eve moves fast and the course tracks the latest release (`npx eve@latest`). The source of truth is, in order: the student's installed `node_modules/eve/docs/`, the live docs, and the `vercel/eve` GitHub repo. If a symbol name in this skill doesn't match what the student has installed, trust their install.

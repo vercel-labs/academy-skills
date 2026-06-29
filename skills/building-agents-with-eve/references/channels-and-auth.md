@@ -10,7 +10,7 @@ When a student finishes Section 4, have them diff `agent/tools/` against the end
 
 ## The HTTP session API (lesson 1.3, and underneath every channel)
 
-Every Eve app speaks the same stable HTTP API to a durable session. Two handles do two different jobs, and mixing them up is the most common mistake:
+Every eve app speaks the same stable HTTP API to a durable session. Two handles do two different jobs, and mixing them up is the most common mistake:
 
 - **`continuationToken`** — the *resume* handle. Use it to send a follow-up to the same conversation. Owned by the channel.
 - **`sessionId` / `runId`** — the *stream-and-inspect* handle. Use it to attach to the event stream. Owned by the runtime.
@@ -23,7 +23,7 @@ curl -X POST http://127.0.0.1:2000/eve/v1/session \
   -d '{"message":"My brakes feel spongy. What would a bleed cost?"}'
 ```
 
-Eve responds right away with a JSON body carrying a `sessionId` and a `continuationToken`; the `x-eve-session-id` header tells you which durable session to stream.
+eve responds right away with a JSON body carrying a `sessionId` and a `continuationToken`; the `x-eve-session-id` header tells you which durable session to stream.
 
 Stream it (newline-delimited JSON, one event per line):
 
@@ -48,11 +48,11 @@ A session has one active continuation at a time; a stale token is rejected. For 
 - **`withEve` (from `eve/next`)** wraps the Next config so the app serves the agent's routes.
 - **`useEveAgent` (from `eve/react`)** is the client hook that drives the chat UI: send messages, stream the reply, and render the approve/deny prompt from Section 3's HITL gate.
 
-Tell students to **trust their own generated tree over any path printed in the lesson** — check `git status` and match their actual files. The exact generated paths can drift between Eve versions.
+Tell students to **trust their own generated tree over any path printed in the lesson** — check `git status` and match their actual files. The exact generated paths can drift between eve versions.
 
 ## The ordered auth walk
 
-`agent/channels/eve.ts`'s `auth` takes a single `AuthFn` or an **array Eve walks in order**. Each entry has three outcomes:
+`agent/channels/eve.ts`'s `auth` takes a single `AuthFn` or an **array eve walks in order**. Each entry has three outcomes:
 
 - returns a `SessionAuthContext` → **accept** the request and stop the walk
 - returns `null` → **fall through** to the next entry
@@ -94,7 +94,7 @@ The shipped helpers:
 | `localDev()` | Local dev — requests addressed to a loopback hostname. |
 | `vercelOidc()` | The common Vercel deploy path — verifies a Vercel OIDC bearer JWT. |
 
-**Security note for Section 5:** `localDev()` trusts the advertised hostname, so it must never be the only authenticator in production — an attacker who can set a `Host` header could spoof it. That's exactly what 5.1 ("Lock the Doors") fixes: app auth + OIDC stay, the dev catch-all comes out of the production path, and the policy fails closed.
+**Security note for Section 5:** `localDev()` is safe to leave in production. It keys off the request's *hostname* (loopback only), not an env flag, so a public request never matches it — and it isn't the only authenticator (`appAuth` runs first). 5.1 ("Lock the Doors") is mostly verification, not removal: confirm `appAuth` is first and the scaffold's `placeholderAuth()` is gone, and the walk fails closed (every entry falls through to a `401`). The one caveat from the docs: put a normalizing proxy in front of the origin so a forged `Host` header can't spoof loopback.
 
 ## Tier flows from auth into the playbook
 

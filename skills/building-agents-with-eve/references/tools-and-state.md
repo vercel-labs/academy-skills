@@ -31,7 +31,7 @@ Three things to get right:
 
 ### Zod 4 is required
 
-Eve's `inputSchema` expects `StandardJSONSchemaV1`, which **Zod 4** provides and **Zod 3 does not**. A project on Zod 3 fails at the schema boundary, often with a confusing type error. If a student hits schema errors in 1.2, check their installed Zod major version first.
+eve's `inputSchema` expects `StandardJSONSchemaV1`, which **Zod 4** provides and **Zod 3 does not**. A project on Zod 3 fails at the schema boundary, often with a confusing type error. If a student hits schema errors in 1.2, check their installed Zod major version first.
 
 ### Empty input is a real schema
 
@@ -45,7 +45,7 @@ This tells the model the tool takes no arguments, rather than leaving it ambiguo
 
 ### The tool loop
 
-Eve never runs your tools during the model's "discovery" pass — it shows the model the tool *descriptors* first, and only a tool the model actually decides to call gets executed. The loop is: model reads the prompt and tool descriptors → requests a tool call → Eve runs `execute` → the result goes back to the model → the model either calls another tool or writes the final reply. Re-executing a step from the same input is idempotent, so side effects aren't duplicated if a turn resumes after a crash.
+eve never runs your tools during the model's "discovery" pass — it shows the model the tool *descriptors* first, and only a tool the model actually decides to call gets executed. The loop is: model reads the prompt and tool descriptors → requests a tool call → eve runs `execute` → the result goes back to the model → the model either calls another tool or writes the final reply. Re-executing a step from the same input is idempotent, so side effects aren't duplicated if a turn resumes after a crash.
 
 ### Shaping what the model sees (optional)
 
