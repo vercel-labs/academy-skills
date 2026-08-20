@@ -9,7 +9,7 @@ Companion skills for [Vercel Academy](https://vercel.com/academy) courses. Insta
 Discover courses, guided learning, progress tracking. Install globally so it's available in any project:
 
 ```sh
-npx skills add vercel-labs/academy-skills --skill=academy -g -y
+npx skills add vercel-labs/academy-skills --skill academy -g -y
 ```
 
 ### Course skills (per-project)
@@ -19,31 +19,31 @@ Each course has a companion skill with a project wizard, progress detection, and
 [Building Filesystem Agents](https://vercel.com/academy/filesystem-agents) — Build agents that navigate filesystems with bash to answer questions about structured data.
 
 ```sh
-npx skills add vercel-labs/academy-skills --skill=filesystem-agents -y
+npx skills add vercel-labs/academy-skills --skill filesystem-agents -y
 ```
 
 [Building Slack Agents](https://vercel.com/academy/slack-agents) — Build and deploy a Slack agent in one session.
 
 ```sh
-npx skills add vercel-labs/academy-skills --skill=slack-agents -y
+npx skills add vercel-labs/academy-skills --skill slack-agents -y
 ```
 
 [Subscription Store](https://vercel.com/academy/subscription-store) — Build a subscription storefront with Next.js, Supabase, and Stripe.
 
 ```sh
-npx skills add vercel-labs/academy-skills --skill=subscription-store -y
+npx skills add vercel-labs/academy-skills --skill subscription-store -y
 ```
 
 [Building Agents with Eve](https://vercel.com/academy/building-agents-with-eve) — Build a production bike-shop dispatcher with Eve, from first tool to a deployed app behind Slack, a web dashboard, real auth, and human approval.
 
 ```sh
-npx skills add vercel-labs/academy-skills --skill=building-agents-with-eve -y
+npx skills add vercel-labs/academy-skills --skill building-agents-with-eve -y
 ```
 
 [Python on Vercel](https://vercel.com/academy/python-on-vercel) — Run a FastAPI backend and Next.js frontend as one Vercel project under one domain.
 
 ```sh
-npx skills add vercel-labs/academy-skills --skill=python-on-vercel -y
+npx skills add vercel-labs/academy-skills --skill python-on-vercel -y
 ```
 
 ## Architecture

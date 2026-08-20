@@ -10,10 +10,7 @@ When a student finishes Section 4, have them diff `agent/tools/` against the end
 
 ## The HTTP session API (lesson 1.3, and underneath every channel)
 
-Every eve app speaks the same stable HTTP API to a durable session. Two handles do two different jobs, and mixing them up is the most common mistake:
-
-- **`continuationToken`** — the *resume* handle. Use it to send a follow-up to the same conversation. Owned by the channel.
-- **`sessionId` / `runId`** — the *stream-and-inspect* handle. Use it to attach to the event stream. Owned by the runtime.
+Every eve app speaks the same HTTP API to a durable session. In Eve 0.41.0, the accepted response returns one handle, **`sessionId`**. Use it both to stream the event log and address later messages to the same conversation.
 
 Start a session (dev server defaults to port **2000**):
 
@@ -23,7 +20,7 @@ curl -X POST http://127.0.0.1:2000/eve/v1/session \
   -d '{"message":"My brakes feel spongy. What would a bleed cost?"}'
 ```
 
-eve responds right away with a JSON body carrying a `sessionId` and a `continuationToken`; the `x-eve-session-id` header tells you which durable session to stream.
+eve responds right away with `{"ok":true,"sessionId":"wrun_...","status":"accepted"}`. `accepted` is a handoff while the durable turn runs; it is not the assistant's answer.
 
 Stream it (newline-delimited JSON, one event per line):
 
@@ -31,22 +28,22 @@ Stream it (newline-delimited JSON, one event per line):
 curl http://127.0.0.1:2000/eve/v1/session/<sessionId>/stream
 ```
 
-Key events students see: `session.started`, `session.waiting` (parked for input/approval), `session.completed`, `session.failed`. Once the session is `waiting`, send a follow-up by POSTing the stored continuation token:
+Key events include `session.started`, `session.waiting`, `session.completed`, and `session.failed`. Once the session is `waiting`, send a follow-up to the same session ID:
 
 ```bash
 curl -X POST http://127.0.0.1:2000/eve/v1/session/<sessionId> \
   -H 'content-type: application/json' \
-  -d '{"continuationToken":"<token>","message":"Now book the cheapest open slot."}'
+  -d '{"message":"Now book the cheapest open slot."}'
 ```
 
-A session has one active continuation at a time; a stale token is rejected. For deterministic ordering, send one follow-up and wait for the next `session.waiting` before sending another. Reconnect to a stream mid-run with `?startIndex=<count>`. Full contract: `node_modules/eve/docs/concepts/sessions-runs-and-streaming.md`.
+For deterministic ordering, send one follow-up and wait for the next `session.waiting` before sending another. Reconnect to a stream mid-run with `?startIndex=<count>`. Full contract: `node_modules/eve/docs/concepts/sessions-runs-and-streaming.md`.
 
 ## The web dashboard (4.1)
 
-`npx eve channels add web` generates a Next.js dashboard. Two pieces to explain:
+The course scaffolds Web Chat in 1.1 with `--channel-web-nextjs`; 4.1 opens and themes it. Do not run the removed `eve channels add web`. Although `eve add channel/web` is the current registry spelling, Eve 0.41.0's item conflicts with a fresh scaffold's AI SDK override. Two pieces to explain:
 
 - **`withEve` (from `eve/next`)** wraps the Next config so the app serves the agent's routes.
-- **`useEveAgent` (from `eve/react`)** is the client hook that drives the chat UI: send messages, stream the reply, and render the approve/deny prompt from Section 3's HITL gate.
+- **`useEveAgent` (from `eve/react`)** drives the chat UI. Use `agent.send(text | parts)` for a turn, `agent.respond(inputResponses)` for a parked request, and `agent.cancel()` to cancel.
 
 Tell students to **trust their own generated tree over any path printed in the lesson** — check `git status` and match their actual files. The exact generated paths can drift between eve versions.
 
@@ -83,7 +80,7 @@ const appAuth: AuthFn<Request> = async (request) => {
 };
 
 export default eveChannel({
-  auth: [appAuth, localDev(), vercelOidc()],
+  auth: [appAuth, vercelOidc(), localDev()],
 });
 ```
 
@@ -91,10 +88,10 @@ The shipped helpers:
 
 | Helper | What it accepts |
 |--------|-----------------|
-| `localDev()` | Local dev — requests addressed to a loopback hostname. |
+| `localDev()` | Synthetic local identity enabled by an `eve dev` or `vercel dev` process. |
 | `vercelOidc()` | The common Vercel deploy path — verifies a Vercel OIDC bearer JWT. |
 
-**Security note for Section 5:** `localDev()` is safe to leave in production. It keys off the request's *hostname* (loopback only), not an env flag, so a public request never matches it — and it isn't the only authenticator (`appAuth` runs first). 5.1 ("Lock the Doors") is mostly verification, not removal: confirm `appAuth` is first and the scaffold's `placeholderAuth()` is gone, and the walk fails closed (every entry falls through to a `401`). The one caveat from the docs: put a normalizing proxy in front of the origin so a forged `Host` header can't spoof loopback.
+**Security note for Section 5:** `localDev()` is process-based, not hostname-based. No request or forged Host header can activate it in production. Keep it last so app and Vercel identity win first. Confirm `placeholderAuth()` is gone, then verify the real unauthenticated `401` against the deployed URL in 5.2.
 
 ## Tier flows from auth into the playbook
 
@@ -124,19 +121,17 @@ export default slackChannel({
 });
 ```
 
-Setup students run once (no feature flag — `vercel connect` ships with a current CLI). `--triggers` is needed on **both** commands: `create` enables forwarding on the connector, `attach` registers this project as the destination. `--trigger-path /eve/v1/slack` is required because Connect's default is `/slack`:
+Use Eve's guided setup:
 
 ```bash
-vercel link
-vercel connect create slack --name spoke-and-mirror --triggers
-vercel connect attach slack/spoke-and-mirror --triggers --trigger-path /eve/v1/slack
+npx eve add channel/slack
 ```
 
-No `detach` step — `create` doesn't auto-attach a project. Re-running `create` installs a new Slack app each time and `remove` doesn't uninstall it, so clean stale apps in Slack's Manage Apps if you iterate. Deploy with `npx eve deploy` (Slack needs a public URL).
+It links or creates the Vercel project, creates or reuses the connector, opens Slack authorization, attaches `/eve/v1/slack`, installs the helper, and writes `agent/channels/slack.ts`. Re-run it for diagnostics instead of blindly creating duplicate apps. Deploy with `npx eve deploy`.
 
 Two API shapes to flag, since older examples differ:
 
 - Slack event handlers take **`(eventData, channel, ctx)`** and deliver via **`channel.thread.post(...)`** — not the old `(event, ctx)` / `ctx.thread.post`.
-- `defaultSlackAuth(message, ctx)` stamps workspace-scoped auth, which is what the per-tier playbook reads in Slack.
+- `defaultSlackAuth(message, ctx)` stamps Slack identity (`user_id`, `team_id`, channel/thread/name), not the shop's `tier`. The course's Slack user therefore gets the plain desk unless an extension maps trusted Slack identity to a server-side customer record and adds `attributes.tier`. Never derive tier from Slack message text.
 
-Full detail: `node_modules/eve/docs/guides/auth-and-route-protection.md` and `reference/channels/`.
+Full detail: `node_modules/eve/docs/guides/auth-and-route-protection.md`, `channels/overview.mdx`, `channels/eve.mdx`, and `channels/slack.mdx`.

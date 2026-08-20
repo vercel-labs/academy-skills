@@ -10,7 +10,7 @@ By the end, the student has touched the six core directories that make up an eve
 2. **`tools/`** — typed actions (`lookup_service`, `check_availability`, `remember_bike`, `recall_bikes`, `book_repair`).
 3. **`lib/` + `defineState`** — durable per-session memory (the garage).
 4. **`skills/`** — a dynamic per-tier playbook.
-5. **`channels/`** — the doors (HTTP/eve, web dashboard, Slack) plus auth.
+5. **Surfaces** — authored HTTP/Slack channel files plus the root Next.js Web Chat mounted through `withEve`.
 6. **`sandbox/`** — isolated execution and a workspace seed, then deployed.
 
 Have the student say back what each directory does and why the tools never changed across Sections 1–5. That's the build-vs-deploy spine internalized.
@@ -23,13 +23,13 @@ These are the natural extensions. Each is a new top-level directory under `agent
 
 When the agent needs to reach an **external system** (a supplier's parts catalog, an inventory API, your own database) rather than carry the data inline, that's a connection — often over MCP. Unlike `defineState` (conversation-scoped memory), a connection is for data that lives outside the session and is shared across users.
 
-For Spoke & Mirror: a `parts-supplier` connection so `book_repair` can check real part availability and lead times before quoting an overhaul, instead of reading from the toy `shop.ts` catalog. Docs: `node_modules/eve/docs/connections.mdx`.
+For Spoke & Mirror: a `parts-supplier` connection so `book_repair` can check real part availability and lead times before quoting an overhaul, instead of reading from the toy `shop.ts` catalog. Docs: `node_modules/eve/docs/connections/overview.mdx`.
 
 ### `subagents/` — a diagnosis specialist
 
 When one job deserves its own focused agent with its own instructions and tools, declare a **subagent**. The parent delegates, the child runs on its own child session (its own fresh `defineState`), and publishes progress on its own stream; the parent sees a `subagent.called` event with a `childSessionId`.
 
-For Spoke & Mirror: a `diagnosis` specialist that takes a symptom ("spongy brakes, clicking in the drivetrain") and works through a structured diagnostic tree, returning a recommended service list the dispatcher then quotes. Docs: `node_modules/eve/docs/subagents.mdx`.
+For Spoke & Mirror: a `diagnosis` specialist that takes a symptom ("spongy brakes, clicking in the drivetrain") and works through a structured diagnostic tree, returning a recommended service list the dispatcher then quotes. Docs: `node_modules/eve/docs/subagents/index.mdx`.
 
 ### `schedules/` — a nightly pickup nudge
 
@@ -53,6 +53,6 @@ The dispatcher is a worked example of the first four. The last three are the sam
 
 ## Pointers
 
-- Bundled docs: `node_modules/eve/docs/` (`connections.mdx`, `subagents.mdx`, `schedules.mdx`, and the `guides/` directory).
+- Bundled docs: `node_modules/eve/docs/` (`connections/overview.mdx`, `subagents/index.mdx`, `schedules.mdx`, and the `guides/` directory).
 - Live docs and the `vercel/eve` GitHub repo for anything newer than the installed version.
 - The course's `bike-shop-agent` reference repo is the complete, working tree to compare against if a student gets stuck.

@@ -26,7 +26,7 @@ export default defineTool({
 Three things to get right:
 
 1. **`description`** is read by the model to decide *when* to call the tool. Write it for the model, not for a human reader. Say what it does and when to use it.
-2. **`inputSchema`** is a **Zod 4** object. Every field's `.describe()` is documentation the model reads to fill that field. A field with no `.describe()` makes the model guess.
+2. **`inputSchema`** is a **Zod 4** object. `.describe()` gives the model useful guidance when a field name is ambiguous; it is not required on every field.
 3. **`execute`** receives the validated input and returns a value the model reads. It can be async and can call anything in `agent/lib/`.
 
 ### Zod 4 is required
@@ -45,11 +45,13 @@ This tells the model the tool takes no arguments, rather than leaving it ambiguo
 
 ### The tool loop
 
-eve never runs your tools during the model's "discovery" pass — it shows the model the tool *descriptors* first, and only a tool the model actually decides to call gets executed. The loop is: model reads the prompt and tool descriptors → requests a tool call → eve runs `execute` → the result goes back to the model → the model either calls another tool or writes the final reply. Re-executing a step from the same input is idempotent, so side effects aren't duplicated if a turn resumes after a crash.
+eve never runs your tools during the model's "discovery" pass — it shows the model the tool *descriptors* first, and only a tool the model actually decides to call gets executed. The loop is: model reads the prompt and tool descriptors → requests a tool call → eve runs `execute` → the result goes back to the model → the model either calls another tool or writes the final reply.
+
+An interrupted in-flight step may run again. External writes such as bookings, payments, or emails need an idempotency key or server-side deduplication. An approval gate controls authorization; it does not make a write idempotent.
 
 ### Shaping what the model sees (optional)
 
-`execute`'s full typed return goes to channel event handlers and hooks (so a channel can render rich output). If you want the *model* to see a smaller summary, a tool can return a model-facing view distinct from the full result. Most course tools don't need this; mention it only if a student asks why a tool returns a big object but the model seems to see less. See `node_modules/eve/docs/tools.mdx`.
+`execute`'s full typed return goes to channel event handlers and hooks (so a channel can render rich output). If you want the *model* to see a smaller summary, a tool can return a model-facing view distinct from the full result. Most course tools don't need this; mention it only if a student asks why a tool returns a big object but the model seems to see less. See `node_modules/eve/docs/tools/overview.mdx`.
 
 ## defineState
 
@@ -92,4 +94,4 @@ And `recall_bikes` imports the *same* handle and reads it. That shared import is
 - **Expecting a fresh slate each turn.** State is durable *by default* and does **not** reset between turns. If a student wants a clean slate every turn, overwrite it from a `turn.started` hook — but the course wants persistence, so this is usually a misunderstanding, not a bug.
 - **Treating state as a database.** State is conversation-scoped short-term memory. Anything that must outlive the session, be shared across users, or be queried independently belongs in an external store or a connection. Subagents get their own fresh state — `defineState` values never cross the parent/child boundary.
 
-Full detail: `node_modules/eve/docs/guides/state.md` and `tools.mdx`.
+Full detail: `node_modules/eve/docs/concepts/state.md` and `tools/overview.mdx`.

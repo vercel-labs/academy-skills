@@ -53,9 +53,11 @@ Note the defensive `Array.isArray(tier) ? tier[0] : tier` — attribute values c
 
 In Section 2 there is **no real channel auth yet**. Under plain `eve dev` the TUI sends no claim, so `ctx.session.auth.current?.attributes.tier` is undefined and the playbook returns `null` — the plain desk. That's expected, not broken.
 
-So that the playbook is testable now, 2.3 adds a crude demo door to `agent/channels/eve.ts`: a `demoTierAuth` `AuthFn` that stamps `tier` from an `x-shop-tier` header. Hitting the agent over HTTP with `curl -H 'x-shop-tier: pro'` lights up the pro desk; the TUI (no header) stays plain. `localDev()` must stay in the walk or the TUI locks out. This door trusts a header anyone could send — fine on a laptop, dangerous in production — so **4.3** replaces it with a real `appAuth` that stamps `tier` from the customer's server-side record. From that point the *same* dynamic skill, untouched, changes the desk for callers who proved who they are. That's the payoff for the build-vs-deploy spine: the brain was wired in Section 2, and real identity in Section 4 lights it up for production.
+So that the playbook is testable now, 2.3 adds a crude demo door to `agent/channels/eve.ts`: a `demoTierAuth` `AuthFn` that stamps `tier` from an `x-shop-tier` header. Hitting the agent over HTTP with `curl -H 'x-shop-tier: pro'` lights up the pro desk; the TUI (no header) stays plain. Keep `[demoTierAuth, vercelOidc(), localDev()]`. This door trusts a header anyone could send—fine on a laptop, dangerous in production—so **4.3** replaces it with real `appAuth` backed by the customer's server-side record.
 
 When a student in Section 2 says "my playbook never changes in the TUI," the answer is: "Right — the TUI sends no tier. Test it with `curl -H 'x-shop-tier: pro'` against the demo door you added in 2.3, and real auth replaces that door in 4.3."
+
+`eve info` can report `Skills 0 skills` here even when `shop-playbook.ts` is correct. It counts statically discovered skills; this capability resolves dynamically at `session.started`. Validate the file and exercise a tiered session instead of treating that number as a discovery error.
 
 ## The sandbox workspace seed
 

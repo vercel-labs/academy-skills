@@ -6,7 +6,7 @@ This is the structural argument the course is built on. Hold onto it — when a 
 
 ## The project layout
 
-A scaffolded eve project (`npx eve@latest init`) gives you a skeleton. By the end of the course, the dispatcher's `agent/` tree looks like this:
+A scaffolded course project (`npx eve@0.41.0 init spoke-and-mirror --channel-web-nextjs`) gives you the agent skeleton plus the dashboard. By the end of the course, the dispatcher's `agent/` tree looks like this:
 
 ```
 agent/
@@ -20,7 +20,7 @@ agent/
     book_repair.ts
   skills/                  → markdown or defineDynamic/defineSkill
     shop-playbook.ts
-  channels/                → the doors: eve, web, slack
+  channels/                → authored transport definitions
     eve.ts
     slack.ts
   sandbox/                 → defineSandbox + a workspace/ seed
@@ -37,7 +37,7 @@ Two rules cover most questions:
 1. **`agent/tools/`, `agent/skills/`, `agent/channels/` are auto-discovered.** A file there is live the moment it exists and default-exports the right primitive.
 2. **`agent/lib/` is just code.** Nothing there is registered. It holds shared helpers (the catalog, the garage state, the auth lookup) that tools and channels *import*.
 
-The full layout reference ships in the installed package at `node_modules/eve/docs/reference/project-layout.md`.
+The scaffold and project layout are introduced in `node_modules/eve/docs/getting-started.mdx` and reflected by the student's generated tree.
 
 ## Filename conventions
 
@@ -48,7 +48,7 @@ The full layout reference ships in the installed package at `node_modules/eve/do
 
 The course's whole arc is *one agent, never rewritten, carried into production*. The directory model is what makes that possible:
 
-- **Tools are pure and channel-agnostic.** `lookup_service` has no idea whether it was invoked from the dev TUI, an HTTP POST, the web dashboard, or Slack. Adding a channel is adding a file in `agent/channels/` — the tool code does not change. When a student finishes Section 4 (web + Slack), point out that `agent/tools/` is byte-for-byte identical to the end of Section 3.
+- **Tools are channel-agnostic.** `lookup_service` has no idea whether it was invoked from the dev TUI, HTTP, Web Chat, or Slack. Slack adds an authored channel file; Web Chat lives in the root Next.js `app/` and mounts Eve through `withEve`. Neither changes tool code.
 - **State is durable and lives beside the agent.** `defineState` (see `tools-and-state.md`) persists across turns and across a pause for approval, without an external database.
 - **Identity is stamped at the door.** Channels attach authenticated claims (like `tier`); dynamic skills read those claims. The agent adapts per user without trusting anything the user typed.
 
@@ -62,7 +62,7 @@ The channel authenticates it (an AuthFn) and stamps claims
 defineAgent loads instructions.md (persona) + discovers tools/skills
         ↓
 The model runs the tool loop: pick a tool → run execute → read result → repeat
-        ↓   (a needsApproval gate can park the turn here for a human)
+        ↓   (an approval gate can park the turn here for a human)
 Durable state (defineState) is read/written along the way
         ↓
 The reply streams back out over the same channel
@@ -83,4 +83,4 @@ Anything that must outlive the session, be shared across users, or be queried in
 
 ## Verify against the installed version
 
-eve moves fast and the course tracks the latest release (`npx eve@latest`). The source of truth is, in order: the student's installed `node_modules/eve/docs/`, the live docs, and the `vercel/eve` GitHub repo. If a symbol name in this skill doesn't match what the student has installed, trust their install.
+eve moves fast; this course pins `0.41.0` so every student follows one reproducible path. Check the student's installed `node_modules/eve/docs/` first and call out version drift explicitly instead of silently substituting a newer API.

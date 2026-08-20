@@ -62,7 +62,6 @@ description: >-
   Companion skill for the <Course Title> course on Vercel Academy.
   Use when the user mentions "<course topic>", "the course", "teach me",
   or asks about <key concepts> in the context of the Academy course.
-user-invocable: true
 ---
 ```
 
@@ -129,13 +128,13 @@ An agent should be able to verify each check by reading files — no running cod
 Core skill installs globally (`-g`) since it works across projects:
 
 ```sh
-npx skills add vercel-labs/academy-skills --skill=academy -g -y
+npx skills add vercel-labs/academy-skills --skill academy -g -y
 ```
 
 Course skills install per-project (no `-g`):
 
 ```sh
-npx skills add vercel-labs/academy-skills --skill=<course-slug> -y
+npx skills add vercel-labs/academy-skills --skill <course-slug> -y
 ```
 
 ## For downstream agents

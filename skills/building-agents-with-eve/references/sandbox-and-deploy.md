@@ -35,15 +35,14 @@ During `eve dev`, sandbox work and workflows run locally, so timing is approxima
 The deploy flow in 5.2:
 
 ```bash
-npx eve build      # produce the deployable build
-vercel deploy      # ship it (or `npx eve deploy` for production)
+npx eve deploy
 ```
 
-Before deploying, 5.1 must be done: auth fails closed, secrets live in environment variables (not source), and the Gateway model string resolves via OIDC (`vercelOidc()`) rather than a checked-in key. Only the model layer needs a credential (AI Gateway) — there's no per-tool API key sprawl here.
+Before deploying, 5.1 must be done: auth fails closed, secrets live in environment variables, and the Gateway model resolves via OIDC rather than a checked-in key. Slack/Connect and future integrations also have credentials, but their brokers keep raw secrets out of course code.
 
 ## Smoke-testing the live agent
 
-Once deployed, point the dev TUI at the live URL to drive the production agent:
+Once deployed, verify the public health route, then confirm fail-closed auth with curl: no credentials returns `401`, while `shop_session=demo-pro` returns `202` with `sessionId`. You can separately point the dev TUI at the live URL; its Vercel/OIDC identity does not carry the demo shop cookie or tier:
 
 ```bash
 npx eve dev <deployment-url>
@@ -59,6 +58,6 @@ Then watch the **Agent Runs** tab in the Vercel dashboard for observability — 
 - An authenticated member/pro sees the tier playbook; a walk-in sees the plain desk.
 - Slack and the web dashboard both reach the same agent.
 
-If state doesn't persist or the gate doesn't park in production but did locally, suspect a deploy/env issue (missing OIDC, sandbox backend) before suspecting the agent code — the code didn't change.
+If state or approval behavior differs in production, inspect the session/run events and deployed code first. OIDC explains authentication or model-access failures; sandbox backend selection explains sandbox execution failures. Neither subsystem stores `defineState` nor controls approval parking.
 
-Full detail: `node_modules/eve/docs/sandbox.mdx` and `guides/deployment.md`.
+Full detail: `node_modules/eve/docs/sandbox.mdx` and `guides/deployment/overview.md`.
