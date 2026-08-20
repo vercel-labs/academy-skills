@@ -40,6 +40,12 @@ npx skills add vercel-labs/academy-skills --skill=subscription-store -y
 npx skills add vercel-labs/academy-skills --skill=building-agents-with-eve -y
 ```
 
+[Python on Vercel](https://vercel.com/academy/python-on-vercel) — Run a FastAPI backend and Next.js frontend as one Vercel project under one domain.
+
+```sh
+npx skills add vercel-labs/academy-skills --skill=python-on-vercel -y
+```
+
 ## Architecture
 
 ```
@@ -57,6 +63,8 @@ skills/
   building-agents-with-eve/  → course: teaching + progress detection + eval
     SKILL.md
     references/
+  python-on-vercel/   → course: FastAPI + Next.js teaching + evaluation
+    SKILL.md
 ```
 
 Course skills fetch lesson content from Academy's `.md` endpoints at runtime:
