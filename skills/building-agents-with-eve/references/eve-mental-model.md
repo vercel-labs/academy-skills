@@ -6,7 +6,7 @@ This is the structural argument the course is built on. Hold onto it — when a 
 
 ## The project layout
 
-A scaffolded course project (`npx eve@0.41.0 init spoke-and-mirror --channel-web-nextjs`) gives you the agent skeleton plus the dashboard. By the end of the course, the dispatcher's `agent/` tree looks like this:
+A scaffolded course project (`npx eve@0.84 init spoke-and-mirror --channel-web-nextjs`) gives you the agent skeleton plus the dashboard. By the end of the course, the dispatcher's `agent/` tree looks like this:
 
 ```
 agent/
@@ -20,7 +20,7 @@ agent/
     book_repair.ts
   skills/                  → markdown or defineDynamic/defineSkill
     shop-playbook.ts
-  channels/                → authored transport definitions
+  channels/                → authored channel definitions
     eve.ts
     slack.ts
   sandbox/                 → defineSandbox + a workspace/ seed
@@ -37,7 +37,7 @@ Two rules cover most questions:
 1. **`agent/tools/`, `agent/skills/`, `agent/channels/` are auto-discovered.** A file there is live the moment it exists and default-exports the right primitive.
 2. **`agent/lib/` is just code.** Nothing there is registered. It holds shared helpers (the catalog, the garage state, the auth lookup) that tools and channels *import*.
 
-The scaffold and project layout are introduced in `node_modules/eve/docs/getting-started.mdx` and reflected by the student's generated tree.
+The student's generated tree is the source of truth for the scaffold. `eve info` lists what eve discovered (tools, channels, statically discovered skills). The project layout is documented at https://eve.dev/docs and in the installed `node_modules/eve/docs/`.
 
 ## Filename conventions
 
@@ -83,4 +83,4 @@ Anything that must outlive the session, be shared across users, or be queried in
 
 ## Verify against the installed version
 
-eve moves fast; this course pins `0.41.0` so every student follows one reproducible path. Check the student's installed `node_modules/eve/docs/` first and call out version drift explicitly instead of silently substituting a newer API.
+eve moves fast; this course pins `eve@0.84` so every student follows one reproducible path, even when npm's `latest` tag has moved on. Check the student's installed `node_modules/eve/docs/` first and call out version drift explicitly instead of silently substituting a newer API.

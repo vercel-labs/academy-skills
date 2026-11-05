@@ -13,12 +13,20 @@ import { z } from "zod";
 import { listServices, formatUsd } from "../lib/shop.js"; // note the .js
 
 export default defineTool({
-  description: "Look up a service and its price from the catalog.",
+  description:
+    "Look up the repair services the shop offers, with prices and time estimates. " +
+    "Pass a query to filter (e.g. 'brake', 'wheel'); omit it to list everything.",
   inputSchema: z.object({
-    query: z.string().describe("What the customer asked for, e.g. 'brake bleed'."),
+    query: z.string().optional().describe("Optional keyword to filter services."),
   }),
   async execute({ query }) {
-    // ...return data the model will read and turn into a reply
+    return listServices(query).map((s) => ({
+      id: s.id,
+      name: s.name,
+      description: s.description,
+      price: formatUsd(s.priceCents),
+      estMinutes: s.estMinutes,
+    }));
   },
 });
 ```
@@ -26,7 +34,7 @@ export default defineTool({
 Three things to get right:
 
 1. **`description`** is read by the model to decide *when* to call the tool. Write it for the model, not for a human reader. Say what it does and when to use it.
-2. **`inputSchema`** is a **Zod 4** object. `.describe()` gives the model useful guidance when a field name is ambiguous; it is not required on every field.
+2. **`inputSchema`** is a **Zod 4** object (any Standard Schema or plain JSON Schema object also works, but the course uses Zod). `.describe()` gives the model useful guidance when a field name is ambiguous; it is not required on every field.
 3. **`execute`** receives the validated input and returns a value the model reads. It can be async and can call anything in `agent/lib/`.
 
 ### Zod 4 is required
@@ -51,7 +59,7 @@ An interrupted in-flight step may run again. External writes such as bookings, p
 
 ### Shaping what the model sees (optional)
 
-`execute`'s full typed return goes to channel event handlers and hooks (so a channel can render rich output). If you want the *model* to see a smaller summary, a tool can return a model-facing view distinct from the full result. Most course tools don't need this; mention it only if a student asks why a tool returns a big object but the model seems to see less. See `node_modules/eve/docs/tools/overview.mdx`.
+`execute`'s full typed return goes to channel event handlers and hooks (so a channel can render rich output). If you want the *model* to see a smaller summary, a tool can return a model-facing view distinct from the full result. Most course tools don't need this; mention it only if a student asks why a tool returns a big object but the model seems to see less. See https://eve.dev/docs/tools.
 
 ## defineState
 
@@ -94,4 +102,4 @@ And `recall_bikes` imports the *same* handle and reads it. That shared import is
 - **Expecting a fresh slate each turn.** State is durable *by default* and does **not** reset between turns. If a student wants a clean slate every turn, overwrite it from a `turn.started` hook — but the course wants persistence, so this is usually a misunderstanding, not a bug.
 - **Treating state as a database.** State is conversation-scoped short-term memory. Anything that must outlive the session, be shared across users, or be queried independently belongs in an external store or a connection. Subagents get their own fresh state — `defineState` values never cross the parent/child boundary.
 
-Full detail: `node_modules/eve/docs/concepts/state.md` and `tools/overview.mdx`.
+Full detail: https://eve.dev/docs/concepts/state and https://eve.dev/docs/tools, or the matching pages in the installed `node_modules/eve/docs/`.

@@ -48,17 +48,17 @@ Before answering a course-related question, read the student's codebase to deter
 | No `agent/agent.ts` | File doesn't exist | Pre-1.1 (not scaffolded) |
 | `agent/agent.ts` exists, no `agent/tools/lookup_service.ts` | File check | At 1.1 → 1.2 (Scaffold done, persona set) |
 | `agent/tools/lookup_service.ts` + `agent/lib/shop.ts` exist | File check | At 1.2 → 1.3 (First tool works) |
-| Student is calling `POST /eve/v1/session` | They mention HTTP / NDJSON | At 1.3 (Drive over HTTP) |
+| Student is calling `POST /eve/v1/session` | They mention HTTP / NDJSON / `turn.settled` | At 1.3 (Drive over HTTP) |
 | `agent/tools/check_availability.ts` exists | File check | At 2.1 (Second tool) |
 | `agent/lib/garage.ts` + `remember_bike.ts` / `recall_bikes.ts` | File check | At 2.2 (Memory) |
 | `agent/skills/shop-playbook.ts` exists; `eve.ts` has `demoTierAuth` / `x-shop-tier` | File check | At 2.3 (Per-tier playbook + demo door) |
 | `agent/tools/book_repair.ts` exists, NO `approval` field in it | Read file contents | At 3.1 (Naive booking) |
-| `agent/tools/book_repair.ts` defines an `approval:` object field | Parse/read tool definition, not comments | At 3.2 (Approval gate) |
-| Dashboard chat names `Spoke & Mirror` and layout metadata is shop-branded | Read generated app files | At 4.1 (Web dashboard introduced) |
+| `agent/tools/book_repair.ts` defines an `approval: { request, prompt }` object | Parse/read tool definition, not comments | At 3.2 (Approval gate) |
+| `app/_components/agent-chat.tsx` has `DEFAULT_AGENT_NAME = "Spoke & Mirror"` and `layout.tsx` metadata is shop-branded | Read generated app files | At 4.1 (Web dashboard introduced) |
 | `agent/channels/slack.ts` exists; student confirms guided connector setup | File + student/runtime evidence | At 4.2 (Slack) |
 | `agent/lib/auth.ts` exists + `eve.ts` has `appAuth`/`getCustomer` (replacing the 2.3 demo door) | Read both | At 4.3 (Channel auth) |
 | Auth walk is correct and student completed the policy/secret review | File + student evidence | At 5.1 (Lock the doors) |
-| `agent/sandbox/sandbox.ts` exists with `defineSandbox` | File check | At 5.2 (Deploy) |
+| `agent/sandbox/sandbox.ts` exports `environment` (`DefaultSandbox.environment()`) and a `defineSandbox` default | File check | At 5.2 (Deploy) |
 | Deployed (student mentions `eve deploy` / a live URL) | They tell you | At 5.3 (Where to go next) |
 
 When you detect the lesson, adapt your response:
@@ -68,12 +68,12 @@ When you detect the lesson, adapt your response:
 
 ## Curriculum Map
 
-The course is **14 lessons across 5 sections** (3 / 3 / 2 / 3 / 3). It's **scaffold-first**: students do NOT clone a starter. Lesson 1.1 pins `npx eve@0.41.0 init spoke-and-mirror --channel-web-nextjs`; Sections 1–3 use `npm run dev:eve`, and 4.1 opens the dashboard that was scaffolded up front. This avoids Eve 0.41.0's reproducible later Web installer conflict (`ai@^7.0.38` versus the fresh project's `ai@^7.0.58` override). Two data files arrive via `curl -f --create-dirs` from the reference repo's `main` branch; everything else is written in-lesson.
+The course is **14 lessons across 5 sections** (3 / 3 / 2 / 3 / 3). It's **scaffold-first**: students do NOT clone a starter. Lesson 1.1 pins the course's eve minor with `npx eve@0.84 init spoke-and-mirror --channel-web-nextjs`. Web is scaffolded up front so the dashboard is already wired by 4.1. Sections 1–3 use the terminal UI (`npm run dev:eve`, or `npx eve dev`), and 4.1 opens the dashboard with `npm run dev`. Two data files arrive via `curl -f --create-dirs` from the `complete` folder of `vercel/academy-starters` on `main`; everything else is written in-lesson.
 
 ### Section 1: Your First Agent
 
 **Lesson 1.1 — Scaffold the Dispatcher**
-Run `npx eve@0.41.0 init spoke-and-mirror --channel-web-nextjs`. Eve 0.41.0 starts with `zai/glm-5.2`; link the provider with `/model`, then pin the course model to `anthropic/claude-opus-4.8`. Give the agent its front-desk advisor persona in `instructions.md`. Use `npm run dev:eve` for the TUI.
+Run `npx eve@0.84 init spoke-and-mirror --channel-web-nextjs`. If eve finds no model connection, the TUI opens `/login`; the course uses **Vercel Account** (or a pasted AI Gateway key). eve saves the credential in the OS secret store, not a project file. `/login` decides how eve reaches a model; `/model` decides which model. The scaffold starts with `model: "openai/gpt-6-luna-fast"` and `reasoning: "high"`; the student replaces both lines with the course model `anthropic/claude-opus-4.8`, then writes the front-desk advisor persona in `instructions.md`.
 
 ```typescript
 // agent/agent.ts
@@ -85,7 +85,7 @@ export default defineAgent({
 ```
 
 **Lesson 1.2 — Your First Tool**
-`curl -f --create-dirs` the toy service catalog into `agent/lib/shop.ts` (from the repo's `main` branch, framed as swappable), then write `lookup_service` so the agent quotes a real price. The filename IS the registration.
+`curl -f --create-dirs` the toy service catalog into `agent/lib/shop.ts` (framed as swappable), then write `lookup_service` so the agent quotes a real price. The filename IS the registration. `eve info` lists the discovered tool.
 
 ```typescript
 // agent/tools/lookup_service.ts
@@ -93,21 +93,21 @@ import { defineTool } from "eve/tools";
 import { z } from "zod";
 import { listServices, formatUsd } from "../lib/shop.js";
 export default defineTool({
-  description: "Look up a service and its price from the catalog.",
-  inputSchema: z.object({ query: z.string().describe("e.g. 'brake bleed'") }),
-  async execute({ query }) { /* ... */ },
+  description: "Look up the repair services the shop offers, with prices and time estimates.",
+  inputSchema: z.object({ query: z.string().optional().describe("Optional keyword to filter services.") }),
+  async execute({ query }) { /* map listServices(query) rows, price via formatUsd */ },
 });
 ```
 
 **Lesson 1.3 — Drive It Over HTTP**
-Same agent, no TUI. `POST /eve/v1/session`, read the NDJSON stream, then POST the next message to `/eve/v1/session/:sessionId`. The accepted response returns `sessionId`; there is no continuation token in this course version.
+Same agent, no TUI. `POST /eve/v1/session` returns `202` with `{ ok, sessionId, deliveryId }`, a handle rather than the answer. Stream `GET /eve/v1/session/:sessionId/stream`: NDJSON commit lines `{ at, facts }` plus `{ progress }` records and heartbeats. A turn ends with a `turn.settled` fact. After it settles, POST the next message to `/eve/v1/session/:sessionId`.
 
 ### Section 2: Give It a Memory and a Brain
 
 **Lesson 2.1 — Find Real Openings**
-A second tool, `check_availability`, with an empty input schema `z.object({})`. The agent offers actual open slots.
+A second tool, `check_availability`, with an empty input schema `z.object({})`. It returns `{ slotId, when }` for each slot from `listOpenSlots()`, so the agent offers actual open slots.
 
-**Lesson 2.2 — Remember the Customer's Bikes**
+**Lesson 2.2 — Remember the Bikes**
 Durable per-session state. Declare `garage` with `defineState` at module scope; share it by import into `remember_bike` and `recall_bikes`. The agent recalls a saved bike a turn later.
 
 ```typescript
@@ -117,56 +117,64 @@ export const garage = defineState<Garage>("bikeshop.garage", () => ({ bikes: {} 
 ```
 
 **Lesson 2.3 — A Playbook Per Tier**
-A dynamic skill that changes the desk per membership tier. It reads `tier` from **authenticated claims** (`ctx.session.auth.current?.attributes.tier`), never from user text. To make that testable before real auth exists, 2.3 also adds a crude demo door to `agent/channels/eve.ts` — a `demoTierAuth` `AuthFn` that stamps `tier` from an `x-shop-tier` header — so `curl -H 'x-shop-tier: pro'` exercises the pro desk. The TUI sends no header, so it stays plain. 4.3 replaces this stand-in with real auth. Keep the walk `[demoTierAuth, vercelOidc(), localDev()]`. Also seed `agent/sandbox/workspace/torque-specs.md`.
+A dynamic skill that changes the desk per membership tier. `defineDynamic` takes a function that eve runs before every model call; it returns a `defineSkill({ description, content })` or `null`. It reads `tier` from **authenticated claims** (`ctx.session.auth.current?.attributes.tier`), never from user text. To make that testable before real auth exists, 2.3 also adds a demo door to `agent/channels/eve.ts`: a `demoTierAuth` `AuthFn` that stamps `tier` from an `x-shop-tier` header, so `curl -H 'x-shop-tier: pro'` exercises the pro desk. The TUI sends no header, so it stays plain. 4.3 replaces this stand-in with real auth. Keep the walk `[demoTierAuth, vercelOidc(), localDev()]`. Also seed `agent/sandbox/workspace/torque-specs.md`.
 
 ```typescript
 // agent/skills/shop-playbook.ts
 import { defineDynamic, defineSkill } from "eve/skills";
-export default defineDynamic({ /* on session.started, read tier, return a defineSkill({...}) */ });
+export default defineDynamic((ctx) => {
+  /* read ctx.session.auth.current?.attributes.tier, return defineSkill({ description, content }) or null */
+});
 ```
 
 ### Section 3: Put a Human in the Loop (wrong-first)
 
-**Lesson 3.1 — Book a Repair (the Naive Way)**
+**Lesson 3.1 — Book a Repair**
 A write tool, `book_repair`, that calls `bookSlot`. It cheerfully commits a **$180 overhaul with no sign-off**. This pain is the point. Do not skip it.
 
 **Lesson 3.2 — Pause for a Sign-off**
-Add a cost-based `approval` predicate. Bookings over the **$150** threshold park (`session.waiting`) for a human yes, then resume from the exact step. The teachable line is predicate (cost-based) vs blanket helper (`always`/`once`/`never`).
+Add the object form of `approval` with a cost-based `request` predicate and a `prompt` that names the job. Bookings over the **$150** threshold pause the turn (`interaction.opened`, then `turn.paused`) for a human yes, then resume from the exact step. The teachable line is predicate (cost-based) vs blanket helper (`always()`/`once()`/`never()` from `eve/tools/approval`). Without `prompt`, eve asks a generic `Approve Book repair?`.
 
 ```typescript
 // agent/tools/book_repair.ts  (added in 3.2)
 const APPROVAL_THRESHOLD_CENTS = 15000; // $150
-approval: ({ toolInput }) =>
-  quoteCents(toolInput?.serviceIds ?? []) > APPROVAL_THRESHOLD_CENTS,
+approval: {
+  request: ({ toolInput }) =>
+    quoteCents(toolInput?.serviceIds ?? []) > APPROVAL_THRESHOLD_CENTS,
+  prompt: ({ input }) =>
+    `Book ${input.serviceIds.map((id) => getService(id)?.name ?? id).join(" + ")} ` +
+    `for ${formatUsd(quoteCents(input.serviceIds))}?`,
+},
 ```
 
 ### Section 4: Meet Your Users Where They Are
 
 **Lesson 4.1 — A Web Dashboard**
-Open the Next.js dashboard scaffolded in 1.1. `withEve` (`eve/next`) wraps the config; `useEveAgent` (`eve/react`) drives it with `send(text | parts)`, `respond(inputResponses)`, and `cancel()`, including the approve/deny prompt. **No tool code changes.**
+Open the Next.js dashboard scaffolded in 1.1 with `npm run dev` (`localhost:3000`). `withEve` (`eve/next`) wraps `next.config.ts` and mounts `/eve/v1/*` same-origin. `useEveAgent` (`eve/react`) in `app/_components/agent-chat.tsx` exposes `messages` (eve's own `EveMessage[]`, not AI SDK `UIMessage`), `status` (`idle`/`busy`/`resuming`), `error`, `view`, `send(message)`, `respond(answers)`, and `cancel()`. The approval from 3.2 renders as approve/deny buttons. The only edits: `DEFAULT_AGENT_NAME = "Spoke & Mirror"` in `agent-chat.tsx` and the `metadata` title/description in `layout.tsx`. **No tool code changes.**
 
-**Lesson 4.2 — Add Slack Without Touching a Tool**
-The same agent in Slack via Vercel Connect. Run the current guided setup, `npx eve add channel/slack`; it links the project, creates or reuses a connector, opens Slack authorization, registers `/eve/v1/slack`, installs `@vercel/connect`, and writes the channel. Extend the generated file with the course's explicit dispatch and delivery behavior. Deploy with `npx eve deploy` because Slack needs a public URL.
+**Lesson 4.2 — Add Slack**
+The same agent in Slack via Vercel Connect. Run the guided setup, `npx eve add channel/slack`; it links or creates the project, creates or reuses a connector, opens Slack authorization, registers `/eve/v1/slack`, and writes `agent/channels/slack.ts`. The scaffold already lists `@vercel/connect`. Replace the generated file with the course version: `connectSlackCredentials(...)` plus an `onAppMention` that ignores bots. No delivery code: eve's default renderer posts the final reply and shows tool narration as the thread status. Deploy with `npx eve deploy` because Slack needs a public URL.
 
 **Lesson 4.3 — Stamp Identity at the Door**
-Real channel auth replaces the 2.3 demo door. `curl` the `getCustomer` helper into `agent/lib/auth.ts`, then rewrite `agent/channels/eve.ts` as `[appAuth, vercelOidc(), localDev()]`. `appAuth` stamps `tier`/`issuer` from the server-side customer record; Vercel identity is preserved before the synthetic process-only dev fallback.
+Real channel auth replaces the 2.3 demo door. `curl` the `getCustomer` helper into `agent/lib/auth.ts` (it reads a `shop_session` cookie), then rewrite `agent/channels/eve.ts` as `[appAuth, vercelOidc(), localDev()]`. `appAuth` stamps `tier`/`issuer` from the server-side customer record. Test with `shop_session=demo-pro`, `demo-member`, and `demo-walk-in` cookies; the old `x-shop-tier` header now does nothing.
 
 ### Section 5: Ship It
 
 **Lesson 5.1 — Lock the Doors**
-Mostly verifying, not adding. `localDev()` is process-based: `eve dev`/`vercel dev` enables it, but a Host header cannot. Confirm `[appAuth, vercelOidc(), localDev()]`, remove `placeholderAuth()`, and keep secrets in env. Verify the real unauthenticated `401` against the deployed URL in 5.2, not by spoofing Host under `eve dev`.
+Mostly verifying, not adding. `localDev()` is process-based: `eve dev`/`vercel dev` enables it, but a Host header cannot. Confirm `[appAuth, vercelOidc(), localDev()]`, confirm the scaffold's `placeholderAuth()` is gone, link the model credential with `npx eve link`, and run the `git grep` secret sweep. Verify the real unauthenticated `401` against the deployed URL in 5.2, not by spoofing Host under `eve dev`.
 
 **Lesson 5.2 — Deploy to Vercel**
-A `defineSandbox` with `defaultBackend()`, then `npx eve deploy`. On Vercel, `defaultBackend()` selects Vercel Sandbox; Docker, Microsandbox, and just-bash are local alternatives. Smoke-test health, unauthenticated `401`, authenticated `202`, and the session stream against the live URL.
+Export a sandbox environment and a `defineSandbox` default, then `npx eve deploy`. `DefaultSandbox` picks Vercel Sandbox on Vercel, Docker when a daemon is reachable, and just-bash during `eve dev` otherwise. To pin Vercel, use `VercelSandbox.environment()` from `eve/sandbox/vercel`. Smoke-test `/eve/v1/health`, an unauthenticated `401`, a `shop_session=demo-pro` `202`, and the session stream against the live URL, or connect the TUI with `npx eve remote connect --url <url> --header 'cookie: shop_session=demo-pro'`.
 
 ```typescript
 // agent/sandbox/sandbox.ts
-import { defineSandbox, defaultBackend } from "eve/sandbox";
-export default defineSandbox({ backend: defaultBackend() });
+import { DefaultSandbox, defineSandbox } from "eve/sandbox";
+export const environment = DefaultSandbox.environment();
+export default defineSandbox(() => environment.open());
 ```
 
 **Lesson 5.3 — Where to Go Next**
-Recap "an agent is a directory" (steps 1–6) and name the three directories the shop didn't need yet: `connections/` (a parts-supplier MCP), `subagents/` (a diagnosis specialist), `schedules/` (a nightly pickup nudge). No new files.
+Recap "an agent is a directory" (steps 1–6) and name the three directories the shop didn't need yet: `connections/` (a parts-supplier MCP), `subagents/` (a diagnosis specialist), `schedules/` (a nightly pickup nudge). No new files. The finished app lives in the `complete` folder of `vercel/academy-starters`.
 
 ## Response Rules
 
@@ -183,13 +191,13 @@ Example:
 Read their code. Identify the specific issue. Explain what's wrong and why, then show the fix.
 
 Common issues by lesson:
-- **1.1:** `model provider not linked` on a fresh scaffold — fix with `/model` → Configure provider (paste `AI_GATEWAY_API_KEY` or connect a Vercel project); a `Session ended` line right after linking is normal (the env reload restarts the dev server). Also: wrong Node version (needs 24), or model string typo — it's `anthropic/claude-opus-4.8`.
+- **1.1:** The dispatcher can't answer on a fresh scaffold: run `/login` (Vercel Account or an AI Gateway API key), not `/model`. `/login` sets how eve reaches a model; `/model` only picks which one. The credential lives in the OS secret store and takes effect on the next message, with no restart. Also: wrong Node version (needs 24), or a model string typo (it's `anthropic/claude-opus-4.8`).
 - **1.2:** Zod 3 installed instead of **Zod 4** (eve's `inputSchema` needs `StandardJSONSchemaV1`); a relative import missing the `.js` extension (`../lib/shop.js`); or the `shop.ts` curl failed — `agent/lib/` didn't exist (needs `--create-dirs`) or the URL 404'd and wrote `404: Not Found` into the file (needs `-f`, and the working ref is `main`, not a `v1` tag).
-- **1.3:** Reading the NDJSON stream as one JSON blob instead of line-by-line; copying an incomplete `sessionId`; or posting a follow-up before `session.waiting`.
+- **1.3:** Reading the NDJSON stream as one JSON blob instead of line-by-line; copying an incomplete `sessionId`; posting a follow-up before `turn.settled`; or a `409 session_not_ready` right after the first `POST` (expected; wait a second and resend).
 - **2.2:** Calling `defineState` inside a tool instead of at module scope; adding unnecessary async assumptions—current `get()` and `update()` are synchronous.
-- **2.3:** Reading `tier` from the user message instead of `ctx.session.auth.current?.attributes.tier`; dropping `localDev()` from `[demoTierAuth, vercelOidc(), localDev()]`; expecting the TUI to show a tier—it sends no header, so test with `curl -H 'x-shop-tier: pro'`.
-- **3.2:** Comparing dollars to cents in the `approval` predicate (threshold is `150_00` cents); putting the cost check in `execute` instead of `approval` (it runs *before* execute).
-- **4.1:** Running the removed `eve channels add web`, or the current `eve add channel/web` and hitting `EOVERRIDE`. This course scaffolds Web in 1.1 with `--channel-web-nextjs`. Current hook methods are `send`, `respond`, and `cancel`.
+- **2.3:** Reading `tier` from the user message instead of `ctx.session.auth.current?.attributes.tier`; dropping `localDev()` from `[demoTierAuth, vercelOidc(), localDev()]`; expecting the TUI to show a tier (it sends no header, so test with `curl -H 'x-shop-tier: pro'`); passing an object to `defineDynamic` instead of a function; or a type error on `markdown`, which means the skill text belongs in `content`.
+- **3.2:** Comparing dollars to cents in the `approval` predicate (threshold is `150_00` cents); putting the cost check in `execute` instead of `approval.request` (it runs *before* execute); or seeing `Approve Book repair?` because the `prompt` function is missing from the `approval` object.
+- **4.1:** Blank page or connection errors: they ran `npm run dev:eve` (TUI) instead of `npm run dev` (Next.js at `localhost:3000`). Every message erroring means no model credential; rerun the 1.1 checks (`eve link` or `AI_GATEWAY_API_KEY`). Don't add Web again with `eve add channel/web` (or the removed `eve channels add web`); the course scaffolded it in 1.1 with `--channel-web-nextjs`. `agent.messages` are eve's `EveMessage[]`, not AI SDK `UIMessage`.
 - **4.2:** Bot is visible but never replies — re-run `npx eve add channel/slack` so Eve inspects the connector, installation, and `/eve/v1/slack` trigger destination without blindly creating another app. DMs don't trigger `onAppMention`; test by `@`-mentioning in an invited channel.
 - **4.3:** Reading auth from the wrong place, or the HTTP playbook still showing plain because `appAuth` does not return `tier`. Slack's `defaultSlackAuth` intentionally has no shop tier; add a trusted Slack-user-to-customer mapping only as an extension.
 - **5.1:** Treating `localDev()` as hostname-based. It is process-based, safe to keep last, and no request header enables it. Verify `[appAuth, vercelOidc(), localDev()]`; test `401` on the deployment in 5.2.
@@ -215,7 +223,7 @@ Point them to the relevant reference doc:
 | Dynamic skills, reading auth claims, sandbox workspace | `references/skills-and-dynamic.md` |
 | `approval` predicate vs helpers, pause/resume | `references/human-in-the-loop.md` |
 | Eve/Slack channels, Web Chat, `AuthFn`, ordered auth walk, Connect | `references/channels-and-auth.md` |
-| `defineSandbox`, `defaultBackend()`, Vercel Sandbox, `eve deploy` | `references/sandbox-and-deploy.md` |
+| `defineSandbox`, `DefaultSandbox.environment()`, Vercel Sandbox, `eve deploy` | `references/sandbox-and-deploy.md` |
 | Common errors and fixes | `references/debugging-eve.md` |
 | Connections, subagents, schedules | `references/where-to-go-next.md` |
 
@@ -242,7 +250,7 @@ Tool loop — model picks tools: lookup_service, check_availability,
     ↓                                   ↓
 Durable state (defineState garage)   approval gate
     ↓                                   ↓ (over $150)
-Dynamic skill (shop-playbook)        session.waiting → human yes → resume
+Dynamic skill (shop-playbook)        turn.paused → human yes → resume
 reads tier from auth claims
     ↓
 Response streams back over the same channel
@@ -252,11 +260,12 @@ Response streams back over the same channel
 
 | Component | Purpose |
 |-----------|---------|
-| [eve](https://vercel.com/eve) (`eve@0.41.0`) | Filesystem-first durable agent framework; pinned for the course |
+| [eve](https://eve.dev/docs) (`eve@0.84`) | Filesystem-first durable agent framework; the course pins this minor |
+| [AI SDK](https://ai-sdk.dev) (`ai@7`) | Installed by the scaffold; eve owns the model loop, so course code never imports it directly |
 | [Zod 4](https://zod.dev) | Tool `inputSchema` (Zod 3 fails — needs `StandardJSONSchemaV1`) |
 | Node.js 24 | Runtime; `module: NodeNext`, `.js` extensions on relative imports |
 | [Next.js 16 + React 19](https://nextjs.org) | Web dashboard (`withEve` from `eve/next`, `useEveAgent` from `eve/react`) |
-| [Vercel Connect](https://vercel.com/docs) | Slack channel (`connectSlackCredentials` from `@vercel/connect/eve`) |
+| [Vercel Connect](https://vercel.com/docs/connect) | Slack channel (`connectSlackCredentials` from `@vercel/connect/eve`) |
 | [AI Gateway](https://vercel.com/ai-gateway) | Model routing (gateway ids like `anthropic/claude-opus-4.8`) |
 | [Vercel](https://vercel.com) | Deployment — Vercel Sandbox, Agent Runs observability |
 
@@ -316,54 +325,65 @@ When the student says "check my work", "am I done", or "submit", run the checkli
 - [ ] `agent/tools/lookup_service.ts` exists, `import { defineTool } from "eve/tools"`, `import { z } from "zod"`
 - [ ] `export default defineTool({...})` with a Zod `inputSchema` and `execute`
 - [ ] Imports from `../lib/shop.js` (note the `.js` extension)
+- [ ] Observed: `eve info` lists `lookup_service`
 
 **Lesson 1.3 — Drive It Over HTTP**
-- [ ] Observed: `POST /eve/v1/session` returns `accepted` + `sessionId`, and its NDJSON stream reaches `session.waiting`
+- [ ] Observed: `POST /eve/v1/session` returns `202` with `sessionId` + `deliveryId`, and its NDJSON stream shows `call.requested` for `lookup_service` and then `turn.settled`
 - [ ] Observed: follow-up POSTs a new `message` to that `sessionId` and retains context
 
 **Lesson 2.1 — Find Real Openings**
 - [ ] `agent/tools/check_availability.ts` exists, `defineTool`, empty `inputSchema: z.object({})`
+- [ ] Imports `listOpenSlots` from `../lib/shop.js` and returns only open slots (`slotId` + `when`)
 
-**Lesson 2.2 — Remember the Customer's Bikes**
+**Lesson 2.2 — Remember the Bikes**
 - [ ] `agent/lib/garage.ts` exists, `import { defineState } from "eve/context"`, `defineState("bikeshop.garage", ...)` at module scope
 - [ ] `agent/tools/remember_bike.ts` and `agent/tools/recall_bikes.ts` exist and import `garage` from `../lib/garage.js`
+- [ ] `remember_bike` writes with `garage.update(...)`; `recall_bikes` has `inputSchema: z.object({})` and returns `garage.get()`
 
 **Lesson 2.3 — A Playbook Per Tier**
-- [ ] `agent/skills/shop-playbook.ts` exists, `import { defineDynamic, defineSkill } from "eve/skills"`, `export default defineDynamic({...})`
+- [ ] `agent/skills/shop-playbook.ts` exists, `import { defineDynamic, defineSkill } from "eve/skills"`, `export default defineDynamic((ctx) => ...)` (a function, not an object)
+- [ ] Returns `defineSkill({ description, content })` or `null` (skill text in `content`, not `markdown`)
 - [ ] Reads `tier` from `ctx.session.auth.current?.attributes.tier` (authenticated claims), NOT from user text
 - [ ] `agent/channels/eve.ts` has `[demoTierAuth, vercelOidc(), localDev()]`; the demo auth reads `x-shop-tier`
 - [ ] `agent/sandbox/workspace/torque-specs.md` seeded
 
-**Lesson 3.1 — Book a Repair (the Naive Way)**
+**Lesson 3.1 — Book a Repair**
 - [ ] `agent/tools/book_repair.ts` exists, `defineTool`, imports `bookSlot` from `../lib/shop.js`
 - [ ] NO `approval` field yet (this is intentional — it commits expensive jobs unsupervised)
 
 **Lesson 3.2 — Pause for a Sign-off**
-- [ ] `agent/tools/book_repair.ts` contains an `approval` predicate
-- [ ] Predicate gates on cost (`quoteCents(toolInput.serviceIds)` over the `15000`-cent / $150 threshold), evaluated before `execute`
+- [ ] `agent/tools/book_repair.ts` has an `approval` object beside `inputSchema` (not inside `execute`)
+- [ ] `approval.request` gates on cost (`quoteCents(toolInput?.serviceIds ?? [])` over the `15000`-cent / $150 threshold)
+- [ ] `approval.prompt` names the services and the total (uses `input.serviceIds`, `getService`, `formatUsd`)
+- [ ] No `needsApproval` field (removed from eve; it's a type error)
 
 **Lesson 4.1 — A Web Dashboard**
 - [ ] `next.config.ts` (or equivalent) uses `withEve` from `eve/next`
-- [ ] Dashboard uses `useEveAgent` with `send(text | parts)`, `respond(inputResponses)`, and `cancel()`
-- [ ] Chat display name and layout metadata are branded for Spoke & Mirror
+- [ ] `app/_components/agent-chat.tsx` uses `useEveAgent` from `eve/react` and sets `const DEFAULT_AGENT_NAME = "Spoke & Mirror";`
+- [ ] `app/layout.tsx` `metadata` has title `Spoke & Mirror Dispatcher` (or equivalent shop branding)
+- [ ] Observed: `npm run dev` serves `localhost:3000`, and an over-$150 booking renders approve/deny controls
 - [ ] No tool files changed — verify by diffing against Section 3 state
 
-**Lesson 4.2 — Add Slack Without Touching a Tool**
+**Lesson 4.2 — Add Slack**
 - [ ] `agent/channels/slack.ts` exists, `slackChannel` + `defaultSlackAuth` from `eve/channels/slack`
 - [ ] `connectSlackCredentials(process.env.SLACK_CONNECTOR ?? "slack/spoke-and-mirror")` from `@vercel/connect/eve`
+- [ ] `onAppMention` returns `null` when `message.author?.isBot`, otherwise `{ auth: defaultSlackAuth(message, ctx) }`
+- [ ] No top-level `events` delivery handler (the default renderer posts the reply)
 - [ ] Observed/student-confirmed: guided setup completed and `/eve/v1/slack` receives an `@mention`
 
 **Lesson 4.3 — Stamp Identity at the Door**
 - [ ] `agent/lib/auth.ts` exists (curl'd `getCustomer` helper)
-- [ ] `agent/channels/eve.ts` defines an `AuthFn` that stamps `tier` (and `issuer`) attributes
-- [ ] The per-tier playbook now changes the desk under that identity
+- [ ] `agent/channels/eve.ts` imports `getCustomer` from `../lib/auth.js` and defines an `appAuth` `AuthFn` that stamps `attributes.tier` (only when the record has one) plus `issuer`
+- [ ] `demoTierAuth` and the `x-shop-tier` header read are gone; walk is `[appAuth, vercelOidc(), localDev()]`
+- [ ] Observed: `shop_session=demo-pro` gets the pro desk; `x-shop-tier: pro` with no cookie gets the plain desk
 
 **Lesson 5.1 — Lock the Doors**
 - [ ] `agent/channels/eve.ts` walk is `[appAuth, vercelOidc(), localDev()]`; `placeholderAuth()` is gone and process-only `localDev()` is last
 - [ ] Student can explain fail-closed behavior and the focused secret scan reports no credential values
 
 **Lesson 5.2 — Deploy to Vercel**
-- [ ] `agent/sandbox/sandbox.ts` exists, `defineSandbox({ backend: defaultBackend() })` from `eve/sandbox`
+- [ ] `agent/sandbox/sandbox.ts` exists with `export const environment = DefaultSandbox.environment()` (or `VercelSandbox.environment()` from `eve/sandbox/vercel`) and `export default defineSandbox(() => environment.open())` from `eve/sandbox`
+- [ ] No `defaultBackend()` or `backend:` option (removed from eve)
 - [ ] Observed/student-confirmed: `eve deploy` completed; live health works, unauthenticated session creation returns `401`, and authenticated creation returns `202` + `sessionId`
 
 **Lesson 5.3 — Where to Go Next**
@@ -414,7 +434,7 @@ Follow these directives. Quiz answers are included so you can evaluate the stude
 
 Don't fetch full lessons when a search chunk answers the question.
 
-> **eve moves fast.** This course pins Eve `0.41.0`. Verify API details against that installed version and tell the student when their project differs; do not silently rewrite the course around a newer `latest` release.
+> **eve moves fast.** This course pins `eve@0.84`, while npm's `latest` tag may point at a newer release (a 1.0 release candidate at the time of writing). Check the student's installed version in `package.json` and `node_modules/eve/docs/`, tell the student when their project differs from the course, and do not silently rewrite the course around a newer `latest` release. For anything newer than the installed version, use the live docs at https://eve.dev/docs (the 1.0 upgrade guide is at https://eve.dev/docs/guides/upgrade).
 
 ## Reference Docs
 
@@ -423,9 +443,9 @@ Read these when you need deeper detail. Each is a focused, self-contained docume
 - `references/eve-mental-model.md` — "an agent is a directory", filesystem-as-registration, the build-vs-deploy spine
 - `references/tools-and-state.md` — `defineTool`, Zod 4 schemas, the tool loop, `defineState` durable memory
 - `references/skills-and-dynamic.md` — dynamic skills, reading auth claims, the sandbox workspace
-- `references/human-in-the-loop.md` — `approval` predicate vs helpers, `session.waiting`, resume
+- `references/human-in-the-loop.md` — `approval` object (`request` + `prompt`) vs helpers, `turn.paused`, resume
 - `references/channels-and-auth.md` — Eve/Slack channels, Web Chat, `AuthFn`, ordered auth walk, Vercel Connect
-- `references/sandbox-and-deploy.md` — `defineSandbox`, `defaultBackend()`, Vercel Sandbox, `eve deploy`, Agent Runs
+- `references/sandbox-and-deploy.md` — `defineSandbox`, `DefaultSandbox.environment()`, Vercel Sandbox, `eve deploy`, `eve remote connect`, Agent Runs
 - `references/debugging-eve.md` — common errors per lesson and their fixes
 - `references/where-to-go-next.md` — connections (MCP), subagents, schedules
 
