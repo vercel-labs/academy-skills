@@ -136,7 +136,7 @@ z.object({
   args: z.array(z.string()).describe('Arguments to pass to the command'),
   options: z.object({
     cwd: z.string().describe('Working directory').default('.'),
-    env: z.record(z.string()).describe('Environment variables').optional()
+    env: z.record(z.string(), z.string()).describe('Environment variables').optional()
   }).describe('Execution options')
 })
 ```
@@ -146,6 +146,7 @@ z.object({
 Test the tool in isolation before wiring it into the agent:
 
 ```typescript
+import type { Sandbox } from '@vercel/sandbox';
 import { createBashTool } from './tools';
 
 // Mock sandbox for testing
@@ -157,8 +158,13 @@ const mockSandbox = {
   })
 };
 
-const bashTool = createBashTool(mockSandbox as any);
-const result = await bashTool.execute({ command: 'ls', args: ['calls/'] });
+const bashTool = createBashTool(mockSandbox as unknown as Sandbox);
+
+// `execute` is optional on the Tool type and takes (input, options)
+const result = await bashTool.execute!(
+  { command: 'ls', args: ['calls/'] },
+  { toolCallId: 'test-1', messages: [] } as Parameters<NonNullable<typeof bashTool.execute>>[1]
+);
 console.log(result.stdout); // 'file1.md\nfile2.md\n'
 ```
 

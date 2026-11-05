@@ -42,8 +42,8 @@ Before responding to a course-related question, read the student's codebase to d
 
 | Check | How | Lesson |
 |-------|-----|--------|
-| No `lib/agent.ts` | File doesn't exist | Pre-1.2 (Project Setup) |
-| `agent.ts` exists but no `ToolLoopAgent` import | Read file contents | At 1.2 (Agent Skeleton) |
+| No `.vercel/` directory, or `.env.local` missing `AI_GATEWAY_API_KEY` | Check files | At 1.1 (Project Setup) |
+| `lib/agent.ts` is still the starter placeholder (`export let agent: any;`) or has no `ToolLoopAgent` import | Read file contents | At 1.2 (Agent Skeleton) |
 | No `lib/tools.ts` or empty `tools.ts` | File doesn't exist or has no `createBashTool` | At 1.3 (Bash Tool) |
 | `tools.ts` has `createBashTool` but `agent.ts` has no `Sandbox.create()` | Read both files | At 2.1 (Wire Up Sandbox) |
 | No `loadSandboxFiles` function in `agent.ts` | Read file contents | At 2.2 (Files and Instructions) |
@@ -59,20 +59,24 @@ When you detect the lesson, adapt your response:
 ### Section 1: Building an Agent
 
 **Lesson 1.1 — Project Setup**
-Clone the starter repo, link to Vercel with `vc link`, pull env vars with `vc env pull`, add AI Gateway API key to `.env.local`. Students learn the project structure:
+Deploy the starter with the lesson's **Deploy with Vercel** button (it copies `filesystem-agents/starter` from the public `vercel/academy-starters` repo into a new `filesystem-agent` repository and Vercel project), clone the new repo, run `pnpm install`, link with `vc link` (Link to existing project), pull env vars with `vc env pull` (writes `VERCEL_OIDC_TOKEN` for Sandbox auth), and add `AI_GATEWAY_API_KEY` to `.env.local`. Requires Node.js 22+ and pnpm. Students learn the project structure:
 ```
 app/
 ├── page.tsx            # Renders the Form component
-├── form.tsx            # Chat input + streamed response display
+├── form.tsx            # Chat input, streams responses from /api
 ├── api/route.ts        # POST handler that calls agent.stream()
+├── layout.tsx          # Root layout
+└── globals.css         # Tailwind styles
 lib/
 ├── calls/              # 3 demo call transcripts (1.md, 2.md, 3.md)
-├── agent.ts            # Empty — student builds this
-└── tools.ts            # Empty — student builds this
+├── agent.ts            # Placeholder (`export let agent: any;`). Student builds this
+└── tools.ts            # Empty. Student builds this
 ```
 
+The app won't do anything useful until `lib/agent.ts` exports a real `agent` (lesson 1.2), so don't send the student to `pnpm dev` during 1.1.
+
 **Lesson 1.2 — Agent Skeleton**
-Create a `ToolLoopAgent` with a model, empty instructions, and empty tools. The agent works as a bare LLM — no tool access yet.
+Create a `ToolLoopAgent` with a model, empty instructions, and empty tools. The agent works as a bare LLM with no tool access yet. The lesson explains the agent loop (prompt, tool call, result, repeat) and notes the default step limit of 20 (`stopWhen` defaults to `isStepCount(20)` in `ai@7`).
 
 Key code (`lib/agent.ts`):
 ```typescript
@@ -131,6 +135,8 @@ Test the agent with three question types:
 
 Watch the tool loop: prompt → tool call → result → next tool call → final response. Each `bashTool` invocation is visible in the chat UI.
 
+The lesson closes with extension ideas: more tools (file upload, semantic search, write), a better data pipeline (Vercel Blob or S3, a database, on-demand loading), UI upgrades (chat history, file tree, auth), and the [`bash-tool`](https://github.com/vercel-labs/bash-tool) package. Lesson 2.3 has no Commit or Solution section.
+
 ## Response Rules
 
 ### When the student is confused about a concept
@@ -146,7 +152,7 @@ Example:
 Read their code. Identify the specific issue. Explain what's wrong and why, then show the fix.
 
 Common issues by lesson:
-- **1.2:** Forgetting to export `agent` as a named export
+- **1.2:** Forgetting to export `agent` as a named export, or leaving the starter's `export let agent: any;` placeholder in place
 - **1.3:** Missing `.describe()` on Zod fields, or not returning `{ stdout, stderr, exitCode }`
 - **2.1:** Not using `await` with `Sandbox.create()`, or forgetting to pass sandbox to tool
 - **2.2:** Loading files AFTER the agent export, or empty instructions string
@@ -209,11 +215,13 @@ Streams answer to user
 
 | Component | Purpose |
 |-----------|---------|
-| [AI SDK](https://sdk.vercel.ai) `ToolLoopAgent` | Agent loop — model decides which tools to call and when to stop |
-| [AI SDK](https://sdk.vercel.ai) `tool()` | Define tools with Zod schemas the LLM reads to generate inputs |
-| [Vercel Sandbox](https://vercel.com/docs/functions/sandbox) | Isolated Linux microVM for safe bash execution |
+| [AI SDK](https://ai-sdk.dev) `ToolLoopAgent` | Agent loop — model decides which tools to call and when to stop |
+| [AI SDK](https://ai-sdk.dev) `tool()` | Define tools with Zod schemas the LLM reads to generate inputs |
+| [Vercel Sandbox](https://vercel.com/docs/sandbox) | Isolated Linux microVM for safe bash execution |
 | [AI Gateway](https://vercel.com/ai-gateway) | Routes to any model provider (Anthropic, OpenAI, Google, etc.) |
 | [Zod](https://zod.dev) | Schema validation for tool inputs — doubles as LLM documentation |
+
+The finished app (`filesystem-agents/complete` in `vercel/academy-starters`) uses `ai@7`, `@ai-sdk/react@4`, `@vercel/sandbox@3`, `zod@4`, Next.js 16, and React 19 on Node.js 22+. In `ai@7` the agent's prompt goes in `instructions` (never `system`), and the route converts the agent stream with `toUIMessageStream({ stream: result.stream })`. If a student's code uses `system:`, `stream.toUIMessageStream()`, or the old `useChat` `input`/`handleSubmit` helpers, they're following pre-v7 material.
 
 ## Teaching Mode
 
@@ -339,7 +347,7 @@ Append `.md` to any course or lesson URL:
 ```yaml
 ---
 title: "Building Filesystem Agents"
-description: "Build a file system agent that uses bash tools and Vercel Sandbox to explore call transcripts and answer questions."
+description: "Build a filesystem agent that uses bash tools and Vercel Sandbox to explore call transcripts and answer questions."
 canonical_url: "https://vercel.com/academy/filesystem-agents"
 md_url: "https://vercel.com/academy/filesystem-agents.md"
 docset_id: "vercel-academy"
@@ -421,12 +429,12 @@ Read these when you need deeper detail. Each is a focused document on a single t
 ## Installation
 
 ```bash
-npx skills add vercel/academy-filesystem-agents --skill filesystem-agents
+npx skills add vercel-labs/academy-skills --skill filesystem-agents -y
 ```
 
 ## Vercel Academy Course
 
-This skill is the companion to the [Building Filesystem Agents](https://vercel.com/academy) course on Vercel Academy. The course walks through building a call transcript analyzer in 6 hands-on lessons using AI SDK ToolLoopAgent, Vercel Sandbox, and AI Gateway.
+This skill is the companion to the [Building Filesystem Agents](https://vercel.com/academy/filesystem-agents) course on Vercel Academy. The course walks through building a call transcript analyzer in 6 hands-on lessons using AI SDK ToolLoopAgent, Vercel Sandbox, and AI Gateway.
 
 If you're working through the course: this skill is your TA. Ask questions, get unstuck, and learn the concepts behind the code.
 
