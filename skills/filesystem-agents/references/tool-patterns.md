@@ -119,7 +119,9 @@ Run database queries alongside filesystem exploration.
 ```typescript
 import { tool } from 'ai';
 import { z } from 'zod';
-import { sql } from '@vercel/postgres';
+import { neon } from '@neondatabase/serverless';
+
+const sql = neon(process.env.DATABASE_URL!);
 
 export function createSQLTool() {
   return tool({
@@ -133,15 +135,17 @@ export function createSQLTool() {
         return { error: 'Only SELECT queries are allowed', rows: [] };
       }
       try {
-        const result = await sql.query(query);
-        return { rows: result.rows, rowCount: result.rowCount };
-      } catch (error: any) {
-        return { error: error.message, rows: [] };
+        const rows = await sql.query(query);
+        return { rows, rowCount: rows.length };
+      } catch (error) {
+        return { error: error instanceof Error ? error.message : String(error), rows: [] };
       }
     }
   });
 }
 ```
+
+`@vercel/postgres` is deprecated. This example uses Neon's driver; any Postgres provider from the [Vercel Marketplace](https://vercel.com/marketplace) works the same way. A `startsWith('SELECT')` check is a guardrail, not a security boundary: connect with a read-only database role for real deployments.
 
 **When to use:** Hybrid agents that need both filesystem exploration (unstructured data) and database queries (structured data).
 

@@ -23,16 +23,17 @@ For existing `/python-on-vercel learn`, `/python-on-vercel new`, or `/python-on-
 
 ## Locate the student's project
 
-The repository is `https://github.com/vercel-labs/academy-python-course` and contains two projects:
+The course code lives in `https://github.com/vercel/academy-starters` under `python-on-vercel/`, which contains two projects:
 
 - `starter/`: separate apps with mock inventory; students add `vercel.json` in Lesson 2.1 and connect the frontend in Lesson 2.2.
 - `complete/`: finished Services configuration and connected frontend.
 
-After cloning the repository, enter `academy-python-course/starter`, not just the repository root. Locate these paths relative to the student project:
+After cloning the repository, enter `academy-starters/python-on-vercel/starter`, not just the repository root. Locate these paths relative to the student project:
 
 ```text
 backend/main.py
 backend/pyproject.toml
+backend/uv.lock             # written by uv sync in Lesson 1.2
 frontend/package.json
 frontend/app/page.tsx
 vercel.json                 # added in Lesson 2.1
@@ -48,7 +49,7 @@ Read the student project, not `complete/`, when evaluating progress. If the stud
 - The frontend declares a binding with `type: service`, `service: backend`, `format: url`, and `env: BACKEND_URL`.
 - Ordered public rewrites send `/api` and `/api/(.*)` to `backend`, followed by `/(.*)` to `frontend`.
 - Rewrites preserve the request path. FastAPI defines `/api` and `/api/items` in `backend/main.py`.
-- The Next.js Server Component fetches `new URL("api/items", process.env.BACKEND_URL)` with `cache: "no-store"`, after checking that the binding exists. It checks `res.ok` before decoding JSON.
+- The Next.js Server Component awaits `connection()` from `next/server` before reading `BACKEND_URL`, so the binding check stays out of build-time prerendering. After checking that the binding exists, it fetches `new URL("api/items", process.env.BACKEND_URL)` with `cache: "no-store"` and checks `res.ok` before decoding JSON.
 - Vercel injects `BACKEND_URL` at runtime. Do not replace it with `VERCEL_URL`, a fixed deployment address, a manual environment setting, or a browser-exposed variable.
 - `vercel dev -L` runs both services locally from the directory containing `vercel.json`. A standalone `npm run dev` does not supply the binding.
 - Public rewrites permit direct API checks. A binding separately grants internal access; it does not create public routing or application-level authentication.
@@ -61,10 +62,10 @@ Use files as evidence of implementation, not proof that commands succeeded. Auth
 | Lesson | Work | Source evidence |
 | --- | --- | --- |
 | 1.1 Install the Vercel CLI | Install the current CLI and authenticate | Requires CLI version and identity output; no file proves this |
-| 1.2 Tour the FastAPI Starter | Install backend dependencies in a venv and run `fastapi dev main.py` from `backend/` | `backend/main.py` defines `app = FastAPI()` and the two `/api` routes; `backend/pyproject.toml` declares Python 3.12+ and `fastapi[standard]` |
+| 1.2 Tour the FastAPI Starter | Run `uv sync --python 3.12` and `uv run fastapi dev main.py` from `backend/` | `backend/main.py` defines `app = FastAPI()` and the two `/api` routes; `backend/pyproject.toml` declares Python 3.12+ and `fastapi[standard]`; `backend/uv.lock` exists |
 | 1.3 Tour the Next.js Starter | Run npm commands in `frontend/` and locate mock data | `frontend/app/page.tsx` renders `mockItems`; dependency file declares Next.js 16 |
 | 2.1 Run with vercel dev | Create `vercel.json` and run `vercel dev -L` | Correct service roots, backend entrypoint, binding, and ordered rewrites |
-| 2.2 Wire Next.js to FastAPI | Replace mock data with a binding-based fetch | Async `Home`/`getItems`, no `mockItems`, checked `BACKEND_URL`, `no-store`, checked response |
+| 2.2 Wire Next.js to FastAPI | Replace mock data with a binding-based fetch | Async `Home`/`getItems`, no `mockItems`, `await connection()` before reading `BACKEND_URL`, checked `BACKEND_URL`, `no-store`, checked response |
 | 3.1 Deploy to Production | Link the student root, inspect the project, deploy both services | Configuration and code ready; `.vercel/project.json` only proves linking metadata exists |
 
 ## Evaluation checklists
@@ -78,6 +79,7 @@ Inspect files without running the application for source checks. Ask for missing
 **1.2**
 - [ ] `backend/main.py` defines module-level `app` and `/api` plus `/api/items`
 - [ ] `backend/pyproject.toml` declares Python 3.12+ and `fastapi[standard]`
+- [ ] `backend/uv.lock` exists, and observed `uv run python --version` shows a supported Python version
 - [ ] Observed FastAPI output or HTTP response confirms eight inventory items
 
 **1.3**
@@ -94,6 +96,7 @@ Inspect files without running the application for source checks. Ask for missing
 
 **2.2**
 - [ ] The page has no `mockItems` and renders the result of async `getItems()`
+- [ ] `getItems()` awaits `connection()` (imported from `next/server`) before reading `BACKEND_URL`
 - [ ] It checks for `BACKEND_URL`, resolves `api/items` against it, and fetches with `no-store`
 - [ ] It checks `res.ok` and handles missing configuration clearly
 - [ ] An observed backend edit appears on the refreshed storefront
@@ -115,8 +118,8 @@ Report pass, fail, or unverified for each relevant check. Explain the smallest f
 | Unknown Services configuration | Current Vercel CLI and `services` syntax; don't fall back to the archived configuration |
 | Missing `BACKEND_URL` | Binding declared on the caller with the matching target; run `vercel dev -L` at the student root; restart after config edits |
 | `/api/items` returns 404 | API rewrites before catch-all, correct service name, and exact FastAPI route; the prefix is preserved |
-| Fetch happens during build | Keep `no-store`; bindings exist at runtime, not during build |
-| Python CLI missing | Activate the backend venv and install the backend project, including `fastapi[standard]` |
+| Build reports a missing binding | Keep `await connection()` before reading `BACKEND_URL`; bindings exist at runtime, not during build, and `no-store` alone can't prevent an earlier missing-binding error |
+| `fastapi` command not found | Run `uv sync --python 3.12` from `backend/`, then `uv run fastapi dev main.py`; the dependency must include `fastapi[standard]` |
 | Standalone frontend works before connection, fails afterward | Mock data required no backend; the connected page requires the Services binding |
 | curl receives a login page | Deployment Protection; distinguish access control from an application error and use an authenticated check |
 

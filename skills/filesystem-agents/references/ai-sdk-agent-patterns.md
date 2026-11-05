@@ -25,6 +25,9 @@ export const agent = new ToolLoopAgent({
 | `model` | `string` | Model identifier. Use AI Gateway format: `provider/model-name` |
 | `instructions` | `string` | System prompt. Defines the agent's role, available tools, data layout, and strategy |
 | `tools` | `Record<string, Tool>` | Named map of tools the agent can call. Keys become the tool names the LLM sees |
+| `stopWhen` | `StopCondition` | Optional. When to end the loop. Defaults to `isStepCount(20)`. The course doesn't set it |
+
+This course uses `ai@7`. The prompt goes in `instructions`; there is no `system` option on `ToolLoopAgent`. See the [ToolLoopAgent reference](https://ai-sdk.dev/docs/reference/ai-sdk-core/tool-loop-agent).
 
 ### Streaming
 
@@ -32,23 +35,27 @@ The agent streams responses through the API route:
 
 ```typescript
 // app/api/route.ts
+import { toUIMessageStream } from 'ai';
+
 const stream = await agent.stream({ prompt });
-writer.merge(stream.toUIMessageStream());
+writer.merge(toUIMessageStream({ stream: stream.stream }));
 ```
 
-`agent.stream()` returns a stream that includes both tool calls and text responses. `toUIMessageStream()` converts it to the format the `useChat` hook expects on the client.
+`agent.stream()` returns a `StreamTextResult` that includes both tool calls and text responses. In `ai@7`, `toUIMessageStream` is a standalone helper imported from `ai`: pass it the result's `stream` and it produces the format the `useChat` hook expects on the client. Older code that calls `stream.toUIMessageStream()` as a method is from earlier majors.
 
 ### Model Configuration
 
 AI Gateway routes to any provider through a single API key:
 
 ```typescript
-// These all work — just change the string
-const MODEL = 'anthropic/claude-opus-4.6';
-const MODEL = 'anthropic/claude-sonnet-4.6';
-const MODEL = 'openai/gpt-4o';
-const MODEL = 'google/gemini-2.5-pro';
+// Change the string to switch providers
+const MODEL = 'anthropic/claude-opus-4.6';  // what the course uses
+const MODEL = 'anthropic/claude-sonnet-5.5';
+const MODEL = 'openai/gpt-5.5';
+const MODEL = 'google/gemini-3.6-flash';
 ```
+
+Check the [AI Gateway model list](https://vercel.com/ai-gateway/models) for current IDs before suggesting a swap.
 
 Set `AI_GATEWAY_API_KEY` in `.env.local`. On Vercel, OIDC authentication handles this automatically.
 
@@ -101,10 +108,22 @@ The React hook that connects the chat UI to the API route:
 
 ```typescript
 // app/form.tsx
-import { useChat } from '@ai-sdk/react';
+'use client';
 
-const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat();
+import { useState } from 'react';
+import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
+
+const [input, setInput] = useState('');
+const { messages, sendMessage, status } = useChat({
+  transport: new DefaultChatTransport({ api: '/api' })
+});
+
+// On submit
+sendMessage({ text: input });
 ```
+
+`useChat` no longer manages the input field, so the form keeps its own `input` state. `status` is `'streaming'` while the agent responds. The route lives at `/api` (not `/api/chat`), which is why the transport sets `api`.
 
 ### Message Parts
 
@@ -121,6 +140,8 @@ message.parts.map(part => {
 });
 ```
 
+Tool part types are `tool-<toolName>` (for example `tool-bashTool`). The output is available once `part.state === 'output-available'`.
+
 Tool parts show the agent's reasoning process — which commands it ran and what it found. The course UI renders these with color coding (blue for tool calls, green for output).
 
 ## API Route
@@ -129,19 +150,29 @@ The POST handler that bridges the client and the agent:
 
 ```typescript
 // app/api/route.ts
+import { agent } from '@/lib/agent';
+import {
+  UIMessage,
+  createUIMessageStream,
+  createUIMessageStreamResponse,
+  toUIMessageStream
+} from 'ai';
+
 export async function POST(request: Request) {
-  const messages = await request.json();
-  const prompt = /* extract last user message */;
+  const { messages }: { messages: UIMessage[] } = await request.json();
+  const prompt = /* join the text parts of the last message */;
 
   return createUIMessageStreamResponse({
     stream: createUIMessageStream({
       async execute({ writer }) {
         const stream = await agent.stream({ prompt });
-        writer.merge(stream.toUIMessageStream());
+        writer.merge(toUIMessageStream({ stream: stream.stream }));
       }
     })
   });
 }
 ```
+
+The starter ships this route already written, including a `try`/`catch` that writes "An error occurred. Please try again." to the stream when the agent throws. Students never edit it. Only the last user message is sent as the prompt, so the agent has no memory of earlier turns.
 
 `createUIMessageStreamResponse` and `createUIMessageStream` handle the streaming protocol. The client's `useChat` hook consumes this stream automatically.

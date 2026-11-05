@@ -9,7 +9,7 @@ Common problems and how to fix them, organized by symptom.
 Error: Unauthorized / OIDC token expired
 ```
 
-**Fix:** Re-run `vc env pull` to refresh the token. OIDC tokens expire after ~12 hours locally.
+**Fix:** Re-run `vc env pull` to refresh the token. The local OIDC token is short-lived ([Sandbox authentication](https://vercel.com/docs/sandbox/concepts/authentication)), so this recurs on long-running dev sessions.
 
 On Vercel, OIDC authentication is automatic — this only happens in local development.
 
@@ -75,12 +75,14 @@ console.log(await check.stdout());
 
 ### "command not found"
 
-The sandbox has a minimal Linux install — standard coreutils only. Commands like `jq`, `python`, `node`, `curl` may not be available.
+The default sandbox image is Ubuntu-based and ships Node.js, Python, and common utilities ([Images](https://vercel.com/docs/sandbox/concepts/images)), but not every tool. `jq`, for example, may be missing.
 
 **Fix:** Either:
 - Use available alternatives (`grep` + `awk` instead of `jq`)
-- Install the tool: `sandbox.runCommand('apt-get', ['install', '-y', 'jq'])`
+- Install the tool as root: `sandbox.runCommand({ cmd: 'apt-get', args: ['install', '-y', 'jq'], sudo: true })` (run `apt-get update` the same way first)
 - Write a TypeScript tool that does the equivalent
+
+Note that the course's `bashTool` calls `sandbox.runCommand(command, args)` without `sudo`, so the agent itself can't install packages.
 
 ### "Permission denied"
 
@@ -104,7 +106,7 @@ Error: Port 3000 is already in use
 
 Another process is using port 3000. Either kill it or use a different port:
 ```bash
-pnpm dev -- --port 3001
+pnpm dev --port 3001
 ```
 
 ### Module Not Found

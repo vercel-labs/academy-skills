@@ -84,9 +84,15 @@ Check the learner's project state to determine where they are:
 For deeper course experiences, install a course-specific skill:
 
 ```bash
-npx skills add vercel-labs/academy-skills --skill=slack-agents
-npx skills add vercel-labs/academy-skills --skill=filesystem-agents
-npx skills add vercel-labs/academy-skills --skill=subscription-store
+npx skills add vercel-labs/academy-skills --skill agent-friendly-apis -y
+npx skills add vercel-labs/academy-skills --skill building-agents-with-eve -y
+npx skills add vercel-labs/academy-skills --skill filesystem-agents -y
+npx skills add vercel-labs/academy-skills --skill launch-an-ai-startup -y
+npx skills add vercel-labs/academy-skills --skill python-on-vercel -y
+npx skills add vercel-labs/academy-skills --skill slack-agents -y
+npx skills add vercel-labs/academy-skills --skill subscription-store -y
 ```
+
+Each skill name matches the course slug, so `/academy learn <course-slug>` and the course skill point at the same course.
 
 Course skills include project scaffolding, deployment wizards, and course-specific progress detection.

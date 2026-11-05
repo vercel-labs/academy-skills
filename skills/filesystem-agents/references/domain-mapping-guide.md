@@ -169,14 +169,14 @@ The agent uses `grep` on log files, reads timelines for context, and cross-refer
 ### API Response → Markdown Files
 
 ```typescript
-interface Record {
+interface SourceRecord {
   id: string;
   title: string;
   body: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
-function toMarkdown(record: Record): string {
+function toMarkdown(record: SourceRecord): string {
   const frontmatter = Object.entries(record.metadata)
     .map(([k, v]) => `${k}: ${JSON.stringify(v)}`)
     .join('\n');
