@@ -1,12 +1,22 @@
 # Documentation Patterns for Agent-Friendly APIs
 
-Reference for the seven documentation patterns taught in lesson 2.1. Use this when reviewing or generating API documentation.
+Reference for the seven documentation patterns taught in lesson 2.1 (`agent-friendly-docs`). Use this when reviewing or generating API documentation.
 
 ## Why agents need different docs
 
-Human developers skim docs, infer patterns, and fill in gaps from experience. Agents read docs literally. If the docs are ambiguous, the agent guesses wrong. If an error case is undocumented, the agent has no recovery strategy.
+Human developers skim docs, infer patterns, and fill in gaps from experience. Agents rely more heavily on what the fetched documentation states. If the docs name a parameter `course_slug` while the API expects `courseSlug`, the agent may send the wrong name and get a 400. An undocumented error leaves it without a recovery path. A placeholder like `"string"` can end up in a request unchanged.
 
 Agent-friendly docs are explicit, structured, and example-heavy. They're also better for humans.
+
+## Before formatting: reachable and readable
+
+Lesson 2.1 orders the problem as three gates:
+
+1. **Reachable:** the public docs return a successful response without an access challenge
+2. **Readable:** the response body contains the docs without requiring JavaScript
+3. **Actionable:** exact requests, response shapes, constraints, and recovery paths
+
+The seven patterns below address gate 3. They are design recommendations; the research the course cites measured reachability and copying behavior, not tables versus bullet lists. Prefer accuracy and tested examples over claims about one perfect structure.
 
 ## The Seven Patterns
 
@@ -22,11 +32,11 @@ GET /api/feedback
 Wrong (prose description):
 > Send a GET request to the feedback endpoint to retrieve all entries.
 
-Agents parse code blocks reliably. Prose descriptions of URLs are error-prone and ambiguous.
+The code block gives an exact method and path without asking the reader to infer either one from prose.
 
 ### 2. Parameters as markdown tables
 
-Use markdown tables for all parameters. Never bullet lists.
+Use markdown tables for all query parameters and request body fields.
 
 | Parameter   | Type   | Required | Description           |
 |-------------|--------|----------|-----------------------|
@@ -34,7 +44,7 @@ Use markdown tables for all parameters. Never bullet lists.
 
 Required columns: parameter name, type, required status, description.
 
-Agents extract structured data from tables. Bullet lists with mixed formatting are inconsistent and hard to parse.
+The column headers establish the meaning of each value and each parameter gets one row, so every parameter uses the same shape.
 
 ### 3. Curl examples with real values
 
@@ -59,7 +69,7 @@ curl -X POST "http://localhost:3000/api/feedback" \
   -d '{"courseSlug": "YOUR_COURSE_HERE", "rating": "RATING_VALUE"}'
 ```
 
-Agents treat example values as templates. If your example uses `"example-slug"`, an agent might send that exact string.
+Agents can treat example values as templates. If your example uses `"example-slug"`, an agent might send that exact string. In the Vercel and Ora trace study, 73 of the 119 answers containing code included at least one line copied verbatim from a fetched page, so every example should run unchanged.
 
 ### 4. Complete response bodies
 
@@ -105,7 +115,19 @@ Label format: `**Error response (STATUS_CODE), DESCRIPTION:**`
 **Error response (400), invalid rating:**
 
 {
-  "error": "Rating must be a number between 1 and 5"
+  "error": "Rating must be an integer between 1 and 5"
+}
+
+**Error response (400), invalid JSON body:**
+
+{
+  "error": "Request body must be valid JSON"
+}
+
+**Error response (400), invalid minRating:**
+
+{
+  "error": "minRating must be an integer between 1 and 5"
 }
 
 **Error response (404):**
@@ -114,6 +136,8 @@ Label format: `**Error response (STATUS_CODE), DESCRIPTION:**`
   "error": "Feedback with id \"fb-999\" not found"
 }
 ```
+
+These are the exact messages the course's route handlers return. The hand-written docs in lesson 2.2 document only the missing-fields, invalid-rating, and 404 cases, so a generated doc that also covers invalid JSON and invalid `minRating` is more complete, not wrong.
 
 Without exhaustive error docs, agents have no recovery strategy for failures.
 
@@ -140,9 +164,9 @@ Show how endpoints chain together for real tasks. Not individual calls, but mult
 ```markdown
 ### Investigate low-rated feedback for a course
 
-1. `GET /api/feedback/summary?courseSlug=knife-skills` — check average rating
-2. `GET /api/feedback?courseSlug=knife-skills&minRating=1` — pull all entries
-3. `GET /api/feedback/fb-003` — get details on a specific entry
+1. `GET /api/feedback/summary?courseSlug=knife-skills`: check the average rating and total entries
+2. `GET /api/feedback?courseSlug=knife-skills&minRating=1`: pull all entries (minRating sets the floor, so 1 returns everything)
+3. `GET /api/feedback/fb-003`: get the full details on a specific entry
 ```
 
 Requirements:
@@ -152,7 +176,7 @@ Requirements:
 - At least 2 workflows covering common multi-step tasks
 - Real tasks, not endpoint demonstrations
 
-Agents are worst at inferring sequences and best at following them. Workflow examples answer "how do I accomplish this task?" not just "how do I call this endpoint?"
+Endpoint docs explain how to make one call. Workflows explain how several calls accomplish a task. Start from tasks someone would perform with the API. The course docs include three: investigate low-rated feedback, submit and verify new feedback, compare feedback across courses.
 
 ## Anti-patterns
 

@@ -1,14 +1,18 @@
-# The llms.txt Standard
+# The llms.txt Proposal
 
-Reference for implementing machine-discoverable documentation endpoints. Covers the llms.txt spec, llms-full.txt, and markdown doc routes.
+Reference for the documentation endpoints built in lesson 2.2 (`add-llms-txt`) and verified in 2.3 (`deploy-your-docs`). Covers the llms.txt format, llms-full.txt, and markdown doc routes.
 
 ## What is llms.txt
 
-A convention from [llmstxt.org](https://llmstxt.org) where websites serve a markdown file at `/llms.txt` that agents can discover by convention. Think `robots.txt` but for LLMs.
+A proposal from [llmstxt.org](https://llmstxt.org): a site serves a markdown index at `/llms.txt` listing its important resources with short descriptions. Vercel publishes one at [vercel.com/llms.txt](https://vercel.com/llms.txt).
+
+Treat it as a supplement to accurate first-party docs. The path alone does not guarantee discovery. In the Vercel and Ora trace study cited in the course, 86% of attributed llms.txt fetches followed a link rather than guessing the path, and 36% of the scorable runs that reached the file later fetched a page it listed. Keep the file lean and link to it from pages developers and agents already visit.
+
+`llms-full.txt` is a community convention, not part of the proposal. The course builds it to compare the two access patterns, not because every API must publish one.
 
 ## Three documentation endpoints
 
-The course builds three endpoints that work together:
+The course fills in three stubbed endpoints in lesson 2.2:
 
 | Endpoint | Content-Type | Purpose |
 |----------|-------------|---------|
@@ -16,12 +20,14 @@ The course builds three endpoints that work together:
 | `/llms-full.txt` | `text/plain; charset=utf-8` | Complete docs in one response |
 | `/api/docs.md` | `text/markdown; charset=utf-8` | Full endpoint documentation |
 
-### /llms.txt: The discovery index
+A fourth route, `/api/docs`, stays a starter placeholder (`text/markdown; charset=utf-8`) until the skill generates it in Section 3. The llms.txt file links to it anyway, so `/api/docs.md` is the working docs endpoint until then.
 
-Agents check this endpoint first. It tells them what's available and where to find it.
+### /llms.txt: The index
 
-Required structure:
-1. H1 with project name
+An agent that reaches this file learns what's available and where to find it.
+
+Structure:
+1. H1 with project name (the only required element in the proposal)
 2. Blockquote with a one-line summary
 3. Description paragraph
 4. H2 sections with markdown link lists
@@ -49,13 +55,13 @@ This API serves feedback data for a cooking course platform. Students can submit
 
 ### /llms-full.txt: Everything in one shot
 
-Some agents prefer to load all documentation in a single request. This endpoint bundles the project overview, all endpoint docs, schema, and workflows into one response.
+Some clients need the complete documentation in one response. This endpoint bundles the project overview, all endpoint docs, schema, and three workflows (investigate low-rated feedback, submit and verify, compare courses) into one response.
 
 Same `text/plain` content type as `llms.txt`.
 
 ### /api/docs.md: Markdown docs
 
-Full endpoint documentation served with `text/markdown` content type. The `.md` extension signals that the response is structured markdown. Content follows all seven documentation patterns.
+Full endpoint documentation served with `text/markdown; charset=utf-8`. Same content as `llms-full.txt` without the project overview. Mirrors how Vercel serves docs pages as `.md` (`/docs/functions` and `/docs/functions.md`). Content follows all seven documentation patterns. These hand-written docs are the reference output the skill is evaluated against in Section 3.
 
 ## Implementation in Next.js App Router
 
@@ -85,17 +91,27 @@ headers: {
 }
 ```
 
-## Content-Type matters
+## Content-Type
 
-Use `text/plain` for llms.txt and llms-full.txt. Use `text/markdown` for docs.md. Agents use the content type to decide how to parse the response.
+Use `text/plain; charset=utf-8` for llms.txt and llms-full.txt, so agents can fetch the raw text and parse its Markdown structure without relying on a Markdown-specific type. Use `text/markdown; charset=utf-8` for `/api/docs.md` and `/api/docs`. A typo such as `text/plains` silently serves the wrong type, so verify with `curl -I`.
 
-## Discovery flow
+## How agents reach the docs
 
-An agent encountering your API for the first time:
+An agent can't fetch `/api/docs` unless it learns the route exists: from a prompt, a link, or a search index. Once it has a URL, the docs must pass three gates (lesson 2.1):
 
-1. Checks `/llms.txt` (convention, like checking `robots.txt`)
-2. Reads the index to understand what's available
-3. Either follows a link to a specific endpoint's docs, or fetches `/llms-full.txt` for everything at once
-4. Uses the documentation to construct valid API calls
+1. **Reachable:** the final response is 200, not a 403 or an access challenge
+2. **Readable:** the docs are in the raw body, not added later by client-side JavaScript
+3. **Actionable:** exact requests, complete responses, constraints, and errors
 
-This is why `/llms.txt` is an index with links, not the full docs. The agent chooses its own depth.
+`/llms.txt` is an index with links, not the full docs, so the agent can choose its depth: follow one link, or fetch `/llms-full.txt` for everything.
+
+## Verifying on a deployment (lesson 2.3)
+
+```bash
+curl -iL -A 'Claude-User/1.0' https://your-project-name.vercel.app/llms.txt
+curl -iL -A 'Claude-User/1.0' https://your-project-name.vercel.app/api/docs.md
+```
+
+Each should end with 200, the expected content type, and the expected headings in the body. A 200 without the content doesn't prove readability. A curl from a laptop can't prove every production agent gets through bot protection, because origin matters too; use deployment and firewall logs for real agent traffic. If the final response is 403, inspect Vercel Firewall and Bot Management rules before changing the docs.
+
+The optional [Is Agentic](https://is-agentic.com/) scan gives a readiness snapshot. Fix findings that apply to the API rather than chasing a perfect score.

@@ -4,16 +4,16 @@ Reference for the skill-building lessons (Section 3). Covers SKILL.md structure,
 
 ## Skill anatomy
 
-A skill is a folder with at minimum one file: `SKILL.md`.
+A skill is a folder with at minimum one file: `SKILL.md` (case-sensitive: not `skill.md` or `SKILL.MD`). The folder name is kebab-case.
 
 ```
-api-docs-generator/
+.claude/skills/api-docs-generator/
 ├── SKILL.md              # Required
 └── references/           # Optional
     └── doc-patterns.md
 ```
 
-No package.json, no build step, no runtime dependencies.
+No package.json, no build step, no runtime dependencies. A skill can also include `scripts/` and `assets/`; this course doesn't need them.
 
 ## SKILL.md format
 
@@ -39,7 +39,7 @@ The description field determines when the skill activates. Include exact words y
 - "create API documentation"
 - "make docs for my endpoints"
 
-More variations = more reliable activation. If the skill doesn't trigger, the first fix is always adding more trigger phrases.
+More variations = more reliable activation. Check discovery first with `/skills`, and invoke directly with `/api-docs-generator`. If direct invocation works but a natural-language request doesn't, add that request's wording to the description.
 
 ### Instructions body
 
@@ -60,7 +60,7 @@ Skills use three levels to minimize token usage:
 |-------|-----------|------|
 | Frontmatter | `name` and `description` only | Always (Claude decides relevance) |
 | SKILL.md body | Full instructions | When skill is activated |
-| `references/` files | Supporting docs | When explicitly referenced in instructions |
+| `references/` files | Supporting docs | On demand, when a step needs them |
 
 Reference files in the instructions with backtick paths:
 ```
@@ -74,13 +74,14 @@ Claude reads the file when it reaches that line.
 The course builds a skill with this specific process:
 
 ### Step 1: Discover API routes
-- Glob for `**/api/**/route.ts` and `**/api/**/route.js`
-- List discovered routes
+- Glob for `app/api/**/route.ts` and `app/api/**/route.js`
+- Exclude `app/api/docs/**` and `app/api/docs.md/**` so the skill doesn't document its own output routes
+- List discovered routes (the three feedback route files)
 - Confirm with user before proceeding
 
 ### Step 2: Analyze each route
 Extract from each file:
-- HTTP methods exported (GET, POST, PUT, DELETE)
+- HTTP methods exported (GET, POST, PUT, DELETE, PATCH)
 - URL path (derived from file path)
 - Query parameters (`searchParams.get()` calls)
 - Request body shape (`request.json()` destructuring)
@@ -99,8 +100,9 @@ Extract from each file:
 - Consult `references/doc-patterns.md` for formatting rules
 
 ### Step 5: Write the file
-- Save to `app/api/docs/route.ts` as a route handler
+- Save to `app/api/docs/route.ts` as a route handler, replacing the starter placeholder
 - Returns markdown with `Content-Type: text/markdown; charset=utf-8`
+- Returns the docs directly in the response body, with no client-side JavaScript to construct or fetch them
 - Confirm location with user before writing
 
 ## Quality checklist
@@ -113,23 +115,27 @@ Include this in the SKILL.md so Claude self-verifies:
 - [ ] Schema matches actual TypeScript types
 - [ ] Markdown renders correctly (no broken tables or unclosed code blocks)
 - [ ] At least 2 workflow examples showing multi-endpoint sequences
+- [ ] The route returns `Content-Type: text/markdown; charset=utf-8`
+- [ ] The complete documentation is present in the raw response body without client-side JavaScript
+
+## Running the skill (lesson 3.3)
+
+1. Open Claude Code in the project and run `/skills`. Confirm `api-docs-generator` appears from `.claude/skills/api-docs-generator/`
+2. Invoke directly: `/api-docs-generator`
+3. Then trigger by phrase: "Generate docs for my API"
+4. Watch for: three feedback route files found, docs routes excluded, confirmation prompt, `app/api/docs/route.ts` written
+5. Verify: `curl -i http://localhost:3000/api/docs` returns 200, the markdown content type, and all four endpoints (list, get by ID, submit, summary)
+6. Compare against the hand-written `/api/docs.md` from lesson 2.2 and run at least three generated curl examples
 
 ## The iteration loop
 
-Skills rarely produce perfect output on the first run. Expect 2-3 rounds.
-
-### Round 1: Reveals gaps
-First run exposes assumptions Claude didn't share. Common issues:
+Skills rarely produce perfect output on the first run. Expect to run the skill more than once. The first run exposes assumptions Claude didn't share. Common issues:
 - Placeholder data instead of real seed values
 - Missing error cases
 - Incomplete schema
 - Vague workflow examples
 
-### Round 2: Gets close
-Fix the most impactful issues. Usually this round catches most gaps.
-
-### Round 3: Polish
-Edge cases, formatting, completeness.
+Keep re-running on the same project until the output is consistently good. If several revisions don't fix the same problem, inspect the workflow order instead of adding more wording.
 
 ### Where to fix what
 
@@ -138,25 +144,29 @@ Edge cases, formatting, completeness.
 | Step skipped or wrong order | SKILL.md instructions |
 | Glob pattern missed routes | SKILL.md Step 1 |
 | Formatting issues | `references/doc-patterns.md` |
-| Placeholder values | `references/doc-patterns.md` anti-patterns section |
+| Placeholder values | SKILL.md Step 4 and `references/doc-patterns.md` anti-patterns section |
 | Missing error cases | SKILL.md Step 2 (more specific extraction guidance) |
 | Incomplete schema | SKILL.md Step 3 (more explicit file path guidance) |
 
-Golden rule: don't add more steps. Make existing steps more specific.
+Prefer making an existing step more specific over adding new steps.
 
 ## Where skills live
 
-In the project root, alongside the app code:
+In Claude Code's project-scoped skills directory:
 
 ```
 your-project/
-├── api-docs-generator/    # The skill
-│   ├── SKILL.md
-│   └── references/
-│       └── doc-patterns.md
+├── .claude/
+│   └── skills/
+│       └── api-docs-generator/    # The skill
+│           ├── SKILL.md
+│           └── references/
+│               └── doc-patterns.md
 ├── app/
 ├── data/
 └── lib/
 ```
 
-Anyone who clones the repo gets the skill. No separate installation needed for collaborators.
+Commit `.claude/skills/` so the skill travels with the codebase and its history. Anyone who clones the repo gets the skill. Skills can also live in the user-scoped Claude Code directory, but the course keeps this one with the project.
+
+The public starter currently ships the stub at the project root (`api-docs-generator/`). If a student's skill is there, move it to `.claude/skills/api-docs-generator/` so Claude Code discovers it.

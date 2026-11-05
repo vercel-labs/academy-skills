@@ -46,6 +46,12 @@ npx skills add vercel-labs/academy-skills --skill building-agents-with-eve -y
 npx skills add vercel-labs/academy-skills --skill launch-an-ai-startup -y
 ```
 
+[Agent-Friendly APIs](https://vercel.com/academy/agent-friendly-apis): Build a feedback API, then build a skill that generates the documentation agents need to use it.
+
+```sh
+npx skills add vercel-labs/academy-skills --skill agent-friendly-apis -y
+```
+
 [Python on Vercel](https://vercel.com/academy/python-on-vercel) — Run a FastAPI backend and Next.js frontend as one Vercel project under one domain.
 
 ```sh
@@ -67,6 +73,9 @@ skills/
   subscription-store/  → course: guided build
     SKILL.md
   building-agents-with-eve/  → course: teaching + progress detection + eval
+    SKILL.md
+    references/
+  agent-friendly-apis/  → course: teaching + progress detection + eval
     SKILL.md
     references/
   python-on-vercel/   → course: FastAPI + Next.js teaching + evaluation
